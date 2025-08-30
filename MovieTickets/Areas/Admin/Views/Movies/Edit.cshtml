@@ -1,40 +1,77 @@
 ﻿@model MovieTickets.Models.Movie
-
 @{
-    ViewData["Title"] = "Edit Movie";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Edit Movie";
 }
 
-<h2 class="mb-4">✏️ Edit Movie</h2>
+<h2>Edit Movie</h2>
 
-<form asp-action="Edit" method="post">
+<form asp-action="Edit" method="post" enctype="multipart/form-data">
     <input type="hidden" asp-for="Id" />
+    <div class="row">
+        <div class="col-md-8">
+            <div class="mb-3">
+                <label asp-for="Title" class="form-label"></label>
+                <input asp-for="Title" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="Description" class="form-label"></label>
+                <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Price" class="form-label"></label>
+                    <input asp-for="Price" class="form-control" />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="StartDate" class="form-label"></label>
+                    <input asp-for="StartDate" type="date" class="form-control" />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="EndDate" class="form-label"></label>
+                    <input asp-for="EndDate" type="date" class="form-control" />
+                </div>
+            </div>
+            <div class="mb-3">
+                <label asp-for="TrailerUrl" class="form-label"></label>
+                <input asp-for="TrailerUrl" class="form-control" />
+            </div>
+        </div>
 
-    <div class="form-group mb-3">
-        <label asp-for="Title" class="form-label"></label>
-        <input asp-for="Title" class="form-control" />
+        <div class="col-md-4">
+            <div class="mb-3">
+                <label>Current Poster</label>
+                @if (!string.IsNullOrEmpty(Model.ImgUrl))
+                {
+                    <div>
+                        <img src="@Model.ImgUrl" style="width:100%;object-fit:cover;border-radius:6px" />
+                    </div>
+                }
+            </div>
+
+            <div class="mb-3">
+                <label>Replace Poster</label>
+                <input type="file" name="posterFile" class="form-control" />
+            </div>
+
+            <div class="mb-3">
+                <label>Category</label>
+                @Html.DropDownList("CategoryId", (SelectList)ViewData["CategoryId"], "-- Select --", new { @class = "form-select" })
+            </div>
+
+            <div class="mb-3">
+                <label>Cinema</label>
+                @Html.DropDownList("CinemaId", (SelectList)ViewData["CinemaId"], "-- Select --", new { @class = "form-select" })
+            </div>
+
+            <div class="d-grid mt-3">
+                <button type="submit" class="btn btn-primary">Update</button>
+                <a asp-action="Index" class="btn btn-secondary mt-2">Cancel</a>
+            </div>
+        </div>
     </div>
-
-    <div class="form-group mb-3">
-        <label asp-for="Description" class="form-label"></label>
-        <textarea asp-for="Description" class="form-control"></textarea>
-    </div>
-
-    <div class="form-group mb-3">
-        <label asp-for="Category" class="form-label"></label>
-        <input asp-for="Category" class="form-control" />
-    </div>
-
-    <div class="form-group mb-3">
-        <label asp-for="StartDate" class="form-label"></label>
-        <input asp-for="StartDate" type="date" class="form-control" />
-    </div>
-
-    <div class="form-group mb-3">
-        <label asp-for="Price" class="form-label"></label>
-        <input asp-for="Price" class="form-control" />
-    </div>
-
-    <button type="submit" class="btn btn-primary">Update</button>
-    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
 </form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
