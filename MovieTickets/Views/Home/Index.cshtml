@@ -1,0 +1,50 @@
+﻿@model IEnumerable<MovieTickets.Models.Movie>
+
+<div class="container mt-4">
+    <h2 class="mb-4">🎬 أفلام</h2>
+
+    <!-- Search + Filter -->
+    <form method="get" class="row mb-3">
+        <div class="col-md-4">
+            <input type="text" name="search" class="form-control" placeholder="ابحث عن فيلم" value="@ViewBag.Search" />
+        </div>
+        <div class="col-md-3">
+            <select name="categoryId" class="form-control">
+                <option value="">كل الفئات</option>
+                @* هنا تجيب Categories من ViewData أو Service *@
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-primary">🔍 بحث</button>
+        </div>
+    </form>
+
+    <!-- Movie Cards -->
+    <div class="row">
+        @foreach (var movie in Model)
+        {
+            <div class="col-md-4 mb-3">
+                <div class="card shadow-sm h-100">
+                    <img src="@movie.ImgUrl" class="card-img-top" alt="@movie.Title">
+                    <div class="card-body">
+                        <h5 class="card-title">@movie.Title</h5>
+                        <p class="card-text">@movie.Description?.Substring(0, Math.Min(movie.Description.Length, 100))...</p>
+                        <a href="#" class="btn btn-sm btn-outline-primary">التفاصيل</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Pagination -->
+    <nav>
+        <ul class="pagination justify-content-center">
+            @for (int i = 1; i <= ViewBag.TotalPages; i++)
+            {
+                <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                    <a class="page-link" href="?page=@i&search=@ViewBag.Search&categoryId=@ViewBag.CategoryId">@i</a>
+                </li>
+            }
+        </ul>
+    </nav>
+</div>

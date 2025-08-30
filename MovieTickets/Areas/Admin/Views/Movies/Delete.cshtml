@@ -1,0 +1,22 @@
+﻿@model MovieTickets.Models.Movie
+
+@{
+    ViewData["Title"] = "Delete Movie";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h2 class="mb-4 text-danger">⚠️ Delete Confirmation</h2>
+
+<h4>Are you sure you want to delete this movie?</h4>
+<div class="card p-3 shadow-sm mb-3">
+    <h5>@Model.Title</h5>
+    <p>@Model.Description</p>
+    <p><strong>Category:</strong> @Model.Category</p>
+    <p><strong>Price:</strong> @Model.Price.ToString("C")</p>
+</div>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Yes, Delete</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>

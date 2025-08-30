@@ -1,0 +1,49 @@
+﻿@{
+    ViewData["Title"] = "Dashboard";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+<div class="container mt-4">
+    <h2>📊 لوحة التحكم</h2>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">عدد الأفلام</h5>
+                    <p class="card-text fs-4">@ViewBag.TotalMovies</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">عدد الفئات</h5>
+                    <p class="card-text fs-4">@ViewBag.TotalCategories</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-info mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">عدد المستخدمين</h5>
+                    <p class="card-text fs-4">@ViewBag.TotalUsers</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="mt-5">📋 جدول الأفلام</h3>
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>العنوان</th>
+                <th>الوصف</th>
+                <th>التصنيف</th>
+                <th>إجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            @* هتجيب أفلام وتعرضها *@
+        </tbody>
+    </table>
+</div>
