@@ -1,4 +1,4 @@
-﻿@model MovieTickets.Models.Movie
+﻿@model MovieTickets.Areas.Admin.ViewModels.MovieFormViewModel
 @{
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Edit Movie";
@@ -25,93 +25,115 @@
     </div>
 }
 
-<form asp-action="Edit" method="post" enctype="multipart/form-data" class="row g-3">
+<form asp-action="Edit" enctype="multipart/form-data" method="post">
     @Html.AntiForgeryToken()
     <input type="hidden" asp-for="Id" />
 
-    <div class="col-lg-8">
-        <div class="mb-3">
-            <label asp-for="Title" class="form-label"></label>
-            <input asp-for="Title" class="form-control" />
-            <span asp-validation-for="Title" class="text-danger"></span>
+    @* RowVersion: send Base64 string so we can decode server-side *@
+    @if (Model.RowVersion != null && Model.RowVersion.Length > 0)
+    {
+        <input type="hidden" name="RowVersionBase64" value="@Convert.ToBase64String(Model.RowVersion)" />
+    }
+
+    <div class="form-group">
+        <label asp-for="Title"></label>
+        <input asp-for="Title" class="form-control" />
+        <span asp-validation-for="Title" class="text-danger" />
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Description"></label>
+        <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+        <span asp-validation-for="Description" class="text-danger" />
+    </div>
+
+    <div class="form-row">
+        <div class="form-group col-md-4">
+            <label asp-for="Price"></label>
+            <input asp-for="Price" class="form-control" />
+            <span asp-validation-for="Price" class="text-danger"></span>
         </div>
-
-        <div class="mb-3">
-            <label asp-for="Description" class="form-label"></label>
-            <textarea asp-for="Description" class="form-control" rows="5"></textarea>
-            <span asp-validation-for="Description" class="text-danger"></span>
+        <div class="form-group col-md-4">
+            <label asp-for="StartDate"></label>
+            <input asp-for="StartDate" class="form-control" type="date" />
         </div>
-
-        <div class="row">
-            <div class="col-md-4 mb-3">
-                <label asp-for="Price" class="form-label"></label>
-                <input asp-for="Price" class="form-control" />
-                <span asp-validation-for="Price" class="text-danger"></span>
-            </div>
-
-            <div class="col-md-4 mb-3">
-                <label asp-for="StartDate" class="form-label"></label>
-                <input asp-for="StartDate" type="date" class="form-control" />
-                <span asp-validation-for="StartDate" class="text-danger"></span>
-            </div>
-
-            <div class="col-md-4 mb-3">
-                <label asp-for="EndDate" class="form-label"></label>
-                <input asp-for="EndDate" type="date" class="form-control" />
-                <span asp-validation-for="EndDate" class="text-danger"></span>
-            </div>
-        </div>
-
-        <div class="mb-3">
-            <label asp-for="TrailerUrl" class="form-label"></label>
-            <input asp-for="TrailerUrl" class="form-control" />
-            <span asp-validation-for="TrailerUrl" class="text-danger"></span>
+        <div class="form-group col-md-4">
+            <label asp-for="EndDate"></label>
+            <input asp-for="EndDate" class="form-control" type="date" />
         </div>
     </div>
 
-    <div class="col-lg-4">
-        <div class="mb-3">
-            <label class="form-label">Current Poster</label>
-            @if (!string.IsNullOrEmpty(Model.ImgUrl))
-            {
-                <div class="mb-2">
-                    <img src="@Model.ImgUrl" class="img-fluid rounded" style="max-height:220px;object-fit:cover" />
-                </div>
-            }
-            else
-            {
-                <div class="bg-light p-3 text-center">No poster</div>
-            }
-        </div>
+    <div class="form-group">
+        <label>Poster</label>
+        <input asp-for="PosterFile" type="file" class="form-control-file" />
+        @if (!string.IsNullOrEmpty(Model.ExistingPosterUrl))
+        {
+            <div class="mt-2">
+                <img id="posterExisting" src="@Model.ExistingPosterUrl" style="max-height:150px;" />
+            </div>
+        }
+    </div>
 
-        <div class="mb-3">
-            <label class="form-label">Replace Poster</label>
-            <input type="file" name="posterFile" class="form-control" />
-        </div>
+    <div class="form-group">
+        <label>Additional Images (multi)</label>
+        <input asp-for="UploadedImages" type="file" multiple class="form-control-file" />
+        <div id="imagesPreview" class="mt-2"></div>
 
-        <div class="mb-3">
-            <label class="form-label">Category</label>
-            <select asp-for="CategoryId" asp-items="@(ViewData["CategoryId"] as SelectList)" class="form-select">
-                <option value="">-- Select Category --</option>
-            </select>
-            <span asp-validation-for="CategoryId" class="text-danger"></span>
-        </div>
+        @if (Model.ExistingImages?.Any() == true)
+        {
+            <div class="mt-3">
+                <h6>Existing Images</h6>
+                @foreach (var img in Model.ExistingImages)
+                {
+                    <div class="d-inline-block text-center mr-2 mb-2">
+                        <img src="@img.ImgUrl" style="max-height:100px; display:block;" />
+                        <label class="mt-1">
+                            <input type="checkbox" name="ImageIdsToDelete" value="@img.Id" /> Delete
+                        </label>
+                    </div>
+                }
+            </div>
+        }
+    </div>
 
-        <div class="mb-3">
-            <label class="form-label">Cinema</label>
-            <select asp-for="CinemaId" asp-items="@(ViewData["CinemaId"] as SelectList)" class="form-select">
-                <option value="">-- Select Cinema --</option>
-            </select>
-            <span asp-validation-for="CinemaId" class="text-danger"></span>
-        </div>
+    <div class="form-group">
+        <label>Actors</label>
+        <select asp-for="SelectedActorIds" asp-items="Model.Actors" multiple class="form-control"></select>
+    </div>
 
-        <div class="d-grid">
-            <button type="submit" class="btn btn-primary">Update</button>
-            <a asp-action="Index" class="btn btn-secondary mt-2">Cancel</a>
+    <div class="form-row">
+        <div class="form-group col-md-6">
+            <label asp-for="CinemaId"></label>
+            <select asp-for="CinemaId" asp-items="Model.Cinemas" class="form-control"></select>
+        </div>
+        <div class="form-group col-md-6">
+            <label asp-for="CategoryId"></label>
+            <select asp-for="CategoryId" asp-items="Model.Categories" class="form-control"></select>
         </div>
     </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a asp-action="Index" class="btn btn-secondary">Back</a>
 </form>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        // preview newly selected additional images (client-side)
+        var uploadedInput = document.querySelector('input[name="UploadedImages"]');
+        if (uploadedInput) {
+            uploadedInput.addEventListener('change', function () {
+                var container = document.getElementById('imagesPreview'); container.innerHTML = '';
+                Array.from(this.files).forEach(function (f) {
+                    var reader = new FileReader();
+                    reader.onload = function (ev) {
+                        var i = document.createElement('img');
+                        i.src = ev.target.result; i.style.maxHeight = '100px'; i.classList.add('mr-2','mb-2');
+                        container.appendChild(i);
+                    };
+                    reader.readAsDataURL(f);
+                });
+            });
+        }
+    </script>
 }

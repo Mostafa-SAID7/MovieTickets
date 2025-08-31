@@ -1,170 +1,108 @@
 ﻿@model IEnumerable<MovieTickets.Models.Movie>
-
 @{
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
-    var currentFilter = ViewBag.CurrentFilter as string;
-    var currentCategory = ViewBag.CurrentCategory as int?;
-    var currentCinema = ViewBag.CurrentCinema as int?;
-    var categories = ViewBag.Categories as List<MovieTickets.Models.Category> ?? new();
-    var cinemas = ViewBag.Cinemas as List<MovieTickets.Models.Cinema> ?? new();
-    int pageNumber = ViewBag.PageNumber ?? 1;
-    int totalPages = ViewBag.TotalPages ?? 1;
+    ViewData["Title"] = "Movies";
+    var pageNumber = ViewBag.PageNumber as int? ?? 1;
+    var totalPages = ViewBag.TotalPages as int? ?? 1;
 }
 
-<div class="container-fluid mt-3">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
-        <h2 class="fw-bold text-primary mb-2">🎬 Movies Management</h2>
-        <a asp-action="Create" class="btn btn-success shadow-sm">
-            <i class="bi bi-plus-circle me-1"></i> Create Movie
-        </a>
-    </div>
+<h2>Movies</h2>
 
-    <!-- Alerts -->
-    @if (TempData["Success"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show">
-            <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
-    @if (TempData["Error"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show">
-            <i class="bi bi-x-circle me-2"></i>@TempData["Error"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["ModelStateErrors"] != null)
+{
+    <pre class="bg-light p-2">@TempData["ModelStateErrors"]</pre>
+}
 
-    <!-- Filter -->
-    <form method="get" class="card shadow-sm p-3 mb-4">
-        <div class="row g-3">
-            <div class="col-md-4">
-                <input type="text" name="searchString" value="@currentFilter" class="form-control" placeholder="🔍 Search by title..." />
-            </div>
-            <div class="col-md-3">
-                <select name="categoryId" class="form-select">
-                    <option value="">All categories</option>
-                    @foreach (var c in categories)
+<form class="form-inline mb-3" method="get" asp-action="Index">
+    <input type="text" name="searchString" value="@ViewBag.CurrentFilter" class="form-control mr-2" placeholder="Search title..." />
+    <select name="categoryId" class="form-control mr-2">
+        <option value="">All categories</option>
+        @foreach (var c in ViewBag.Categories as IEnumerable<MovieTickets.Models.Category>)
+        {
+            if (ViewBag.CurrentCategory != null && (int)ViewBag.CurrentCategory == c.Id)
+            {
+                <option value="@c.Id" selected="selected">@c.Name</option>
+            }
+            else
+            {
+                <option value="@c.Id">@c.Name</option>
+            }
+        }
+    </select>
+
+    <select name="cinemaId" class="form-control mr-2">
+        <option value="">All cinemas</option>
+        @foreach (var c in ViewBag.Cinemas as IEnumerable<MovieTickets.Models.Cinema>)
+        {
+            if (ViewBag.CurrentCinema != null && (int)ViewBag.CurrentCinema == c.Id)
+            {
+                <option value="@c.Id" selected="selected">@c.Name</option>
+            }
+            else
+            {
+                <option value="@c.Id">@c.Name</option>
+            }
+        }
+    </select>
+
+    <button type="submit" class="btn btn-primary">Filter</button>
+    <a asp-action="Create" class="btn btn-success ml-2">Create New</a>
+</form>
+
+<table class="table table-striped table-bordered">
+    <thead>
+        <tr>
+            <th>Poster</th>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Cinema</th>
+            <th>Start</th>
+            <th>End</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var m in Model)
+        {
+            <tr>
+                <td style="width:100px">
+                    @if (!string.IsNullOrEmpty(m.ImgUrl))
                     {
-                        <option value="@c.Id" selected="@(c.Id == currentCategory)">
-                            @c.Name
-                        </option>
+                        <img src="@m.ImgUrl" style="max-height:80px; max-width:80px;" />
                     }
-                </select>
-            </div>
-            <div class="col-md-3">
-                <select name="cinemaId" class="form-select">
-                    <option value="">All cinemas</option>
-                    @foreach (var c in cinemas)
-                    {
-                        <option value="@c.Id" selected="@(c.Id == currentCinema)">
-                            @c.Name
-                        </option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-2 d-grid">
-                <button class="btn btn-primary">
-                    <i class="bi bi-funnel-fill me-1"></i> Filter
-                </button>
-            </div>
-        </div>
-    </form>
+                </td>
+                <td>@m.Title</td>
+                <td>@m.Category?.Name</td>
+                <td>@m.Cinema?.Name</td>
+                <td>@m.StartDate.ToString("yyyy-MM-dd")</td>
+                <td>@(m.EndDate == default ? "-" : m.EndDate.ToString("yyyy-MM-dd"))</td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@m.Id" class="btn btn-sm btn-info">Details</a>
+                    <a asp-action="Edit" asp-route-id="@m.Id" class="btn btn-sm btn-primary">Edit</a>
+                    <a asp-action="Delete" asp-route-id="@m.Id" class="btn btn-sm btn-danger">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
 
-    <!-- Table -->
-    <div class="table-responsive shadow-sm rounded">
-        <table class="table table-hover align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th>Poster</th>
-                    <th>Title</th>
-                    <th>Category</th>
-                    <th>Cinema</th>
-                    <th>Start</th>
-                    <th>End</th>
-                    <th>Price</th>
-                    <th class="text-center" style="width:200px">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (Model.Any())
-                {
-                    foreach (var m in Model)
-                    {
-                        <tr>
-                            <td>
-                                @if (!string.IsNullOrEmpty(m.ImgUrl))
-                                {
-                                    <img src="@m.ImgUrl" class="rounded shadow-sm" style="width:60px;height:60px;object-fit:cover" />
-                                }
-                            </td>
-                            <td class="fw-semibold">@m.Title</td>
-                            <td>@m.Category?.Name</td>
-                            <td>@m.Cinema?.Name</td>
-                            <td>@m.StartDate.ToString("yyyy-MM-dd")</td>
-                            <td>@m.EndDate.ToString("yyyy-MM-dd")</td>
-                            <td class="fw-bold text-success">@m.Price.ToString("C")</td>
-                            <td class="text-center">
-                                <div class="btn-group">
-                                    <a asp-action="Details" asp-route-id="@m.Id" class="btn btn-sm btn-info text-white">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                    <a asp-action="Edit" asp-route-id="@m.Id" class="btn btn-sm btn-warning text-dark">
-                                        <i class="bi bi-pencil-square"></i>
-                                    </a>
-                                    <form asp-action="Delete" asp-route-id="@m.Id" method="post" class="d-inline"
-                                          onsubmit="return confirm('Are you sure to delete this movie?');">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm btn-danger">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    }
-                }
-                else
-                {
-                    <tr>
-                        <td colspan="8" class="text-center text-muted py-4">
-                            <i class="bi bi-film fs-3 d-block mb-2"></i>
-                            No movies found.
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Pagination -->
-    @if (totalPages > 1)
-    {
-        <nav aria-label="pagination" class="mt-4">
-            <ul class="pagination justify-content-center">
-                <li class="page-item @(pageNumber == 1 ? "disabled" : "")">
-                    <a class="page-link" asp-action="Index" asp-route-pageNumber="@(pageNumber - 1)"
-                       asp-route-searchString="@currentFilter"
-                       asp-route-categoryId="@currentCategory"
-                       asp-route-cinemaId="@currentCinema">«</a>
-                </li>
-                @for (int i = 1; i <= totalPages; i++)
-                {
-                    <li class="page-item @(i == pageNumber ? "active" : "")">
-                        <a class="page-link" asp-action="Index" asp-route-pageNumber="@i"
-                           asp-route-searchString="@currentFilter"
-                           asp-route-categoryId="@currentCategory"
-                           asp-route-cinemaId="@currentCinema">@i</a>
-                    </li>
-                }
-                <li class="page-item @(pageNumber == totalPages ? "disabled" : "")">
-                    <a class="page-link" asp-action="Index" asp-route-pageNumber="@(pageNumber + 1)"
-                       asp-route-searchString="@currentFilter"
-                       asp-route-categoryId="@currentCategory"
-                       asp-route-cinemaId="@currentCinema">»</a>
-                </li>
-            </ul>
-        </nav>
-    }
-</div>
+<nav>
+    <ul class="pagination">
+        <li class="page-item @(pageNumber <= 1 ? "disabled" : "")">
+            <a class="page-link" asp-action="Index" asp-route-pageNumber="@(pageNumber-1)">Previous</a>
+        </li>
+        @for (int i = 1; i <= totalPages; i++)
+        {
+            <li class="page-item @(i == pageNumber ? "active" : "")">
+                <a class="page-link" asp-action="Index" asp-route-pageNumber="@i">@i</a>
+            </li>
+        }
+        <li class="page-item @(pageNumber >= totalPages ? "disabled" : "")">
+            <a class="page-link" asp-action="Index" asp-route-pageNumber="@(pageNumber+1)">Next</a>
+        </li>
+    </ul>
+</nav>

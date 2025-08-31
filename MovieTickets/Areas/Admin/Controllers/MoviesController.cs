@@ -1,11 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using MovieTickets.Areas.Admin.ViewModels;
 using MovieTickets.Data;
 using MovieTickets.Models;
 using System.IO;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace MovieTickets.Areas.Admin.Controllers
 {
@@ -16,6 +17,10 @@ namespace MovieTickets.Areas.Admin.Controllers
         private readonly IWebHostEnvironment _env;
         private readonly ILogger<MoviesController> _logger;
 
+        // File upload limits / allowed extensions (tweak as needed)
+        private readonly string[] _allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+        private readonly long _maxFileBytes = 5 * 1024 * 1024; // 5 MB
+
         public MoviesController(MovieDbContext context, IWebHostEnvironment env, ILogger<MoviesController> logger)
         {
             _context = context;
@@ -23,7 +28,7 @@ namespace MovieTickets.Areas.Admin.Controllers
             _logger = logger;
         }
 
-        // Index: filter + pagination
+        // Index (kept as you had it)
         public async Task<IActionResult> Index(string searchString, int? categoryId, int? cinemaId, int pageNumber = 1, int pageSize = 10)
         {
             var q = _context.Movies
@@ -75,40 +80,89 @@ namespace MovieTickets.Areas.Admin.Controllers
         // Create GET
         public async Task<IActionResult> Create()
         {
-            await PopulateSelectListsAsync();
-            return View();
+            var vm = new MovieFormViewModel();
+            await PopulateVmSelects(vm);
+            return View(vm);
         }
 
         // Create POST
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Movie movie, IFormFile posterFile)
+        public async Task<IActionResult> Create(MovieFormViewModel vm)
         {
             if (!ModelState.IsValid)
             {
-                await PopulateSelectListsAsync(movie?.CategoryId, movie?.CinemaId);
+                await PopulateVmSelects(vm);
                 TempData["ModelStateErrors"] = SerializeModelState();
-
-                return View(movie);
+                return View(vm);
             }
 
+            // Validate files before starting transaction
+            if (!ValidateFiles(vm.PosterFile, vm.UploadedImages))
+            {
+                await PopulateVmSelects(vm);
+                TempData["ModelStateErrors"] = SerializeModelState();
+                return View(vm);
+            }
+
+            await using var tx = await _context.Database.BeginTransactionAsync();
             try
             {
-                if (posterFile != null && posterFile.Length > 0)
+                var movie = new Movie
                 {
-                    movie.ImgUrl = await SavePosterAsync(posterFile);
-                }
+                    Title = vm.Title,
+                    Description = vm.Description,
+                    Price = vm.Price,
+                    TrailerUrl = vm.TrailerUrl,
+                    StartDate = vm.StartDate,
+                    EndDate = vm.EndDate,
+                    MovieStatus = vm.MovieStatus,
+                    CinemaId = vm.CinemaId,
+                    CategoryId = vm.CategoryId
+                };
 
                 _context.Movies.Add(movie);
-                var saved = await _context.SaveChangesAsync();
-                TempData["Success"] = $"Movie created. {saved} DB row(s) affected.";
+                await _context.SaveChangesAsync(); // ensure movie.Id is populated
+
+                // Poster
+                if (vm.PosterFile != null && vm.PosterFile.Length > 0)
+                {
+                    movie.ImgUrl = await SaveFileAsync(vm.PosterFile, "movies");
+                }
+
+                // Additional images
+                if (vm.UploadedImages != null)
+                {
+                    foreach (var f in vm.UploadedImages)
+                    {
+                        if (f != null && f.Length > 0)
+                        {
+                            var url = await SaveFileAsync(f, "movies");
+                            _context.MovieImgs.Add(new MovieImg { MovieId = movie.Id, ImgUrl = url });
+                        }
+                    }
+                }
+
+                // MovieActors links
+                if (vm.SelectedActorIds != null && vm.SelectedActorIds.Any())
+                {
+                    foreach (var actorId in vm.SelectedActorIds.Distinct())
+                        _context.MovieActors.Add(new MovieActor { MovieId = movie.Id, ActorId = actorId });
+                }
+
+                await _context.SaveChangesAsync();
+                await tx.CommitAsync();
+
+                TempData["Success"] = "Movie created.";
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
+                await tx.RollbackAsync();
                 _logger.LogError(ex, "Create movie failed");
                 ModelState.AddModelError("", "Error saving movie: " + ex.Message);
-                return View(movie);
+                await PopulateVmSelects(vm);
+                return View(vm);
             }
         }
 
@@ -116,88 +170,153 @@ namespace MovieTickets.Areas.Admin.Controllers
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
-            var movie = await _context.Movies.FindAsync(id);
+
+            var movie = await _context.Movies
+                .Include(m => m.MovieImgs)
+                .Include(m => m.MovieActors)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
             if (movie == null) return NotFound();
-            await PopulateSelectListsAsync(movie.CategoryId, movie.CinemaId);
-            return View(movie);
+
+            var vm = new MovieFormViewModel
+            {
+                Id = movie.Id,
+                Title = movie.Title,
+                Description = movie.Description,
+                Price = movie.Price,
+                ExistingPosterUrl = movie.ImgUrl,
+                StartDate = movie.StartDate,
+                EndDate = movie.EndDate,
+                TrailerUrl = movie.TrailerUrl,
+                MovieStatus = movie.MovieStatus,
+                CinemaId = movie.CinemaId,
+                CategoryId = movie.CategoryId,
+                SelectedActorIds = movie.MovieActors.Select(ma => ma.ActorId).ToList(),
+                ExistingImages = movie.MovieImgs.Select(mi => new MovieImgDto { Id = mi.Id, ImgUrl = mi.ImgUrl }).ToList(),
+                RowVersion = movie.RowVersion
+            };
+
+            await PopulateVmSelects(vm);
+            return View(vm);
         }
 
         // Edit POST
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Movie movie, IFormFile posterFile)
+        public async Task<IActionResult> Edit(int id, MovieFormViewModel vm)
         {
-            if (id != movie.Id) return NotFound();
+            if (id != vm.Id) return BadRequest();
 
             if (!ModelState.IsValid)
             {
+                await PopulateVmSelects(vm);
                 TempData["ModelStateErrors"] = SerializeModelState();
-                await PopulateSelectListsAsync(movie?.CategoryId, movie?.CinemaId);
-
-                return View(movie);
+                return View(vm);
             }
 
-            var existing = await _context.Movies.FirstOrDefaultAsync(m => m.Id == id);
-            if (existing == null) return NotFound();
-
-            // copy properties explicitly
-            existing.Title = movie.Title;
-            existing.Description = movie.Description;
-            existing.Price = movie.Price;
-            existing.StartDate = movie.StartDate;
-            existing.EndDate = movie.EndDate;
-            existing.CategoryId = movie.CategoryId;
-            existing.CinemaId = movie.CinemaId;
-            existing.TrailerUrl = movie.TrailerUrl;
-            existing.MovieStatus = movie.MovieStatus;
-
-            if (posterFile != null && posterFile.Length > 0)
+            // Validate files
+            if (!ValidateFiles(vm.PosterFile, vm.UploadedImages))
             {
-                // delete old local file
-                if (!string.IsNullOrEmpty(existing.ImgUrl) && existing.ImgUrl.StartsWith("/uploads/"))
-                {
-                    DeleteLocalFile(existing.ImgUrl);
-                }
-
-                existing.ImgUrl = await SavePosterAsync(posterFile);
+                await PopulateVmSelects(vm);
+                TempData["ModelStateErrors"] = SerializeModelState();
+                return View(vm);
             }
 
+            await using var tx = await _context.Database.BeginTransactionAsync();
             try
             {
-                var saved = await _context.SaveChangesAsync();
-                TempData["Success"] = $"Movie updated. {saved} DB row(s) affected.";
+                var existing = await _context.Movies
+                    .Include(m => m.MovieImgs)
+                    .Include(m => m.MovieActors)
+                    .FirstOrDefaultAsync(m => m.Id == id);
+
+                if (existing == null) return NotFound();
+
+                // Set original rowversion for concurrency check (if provided)
+                if (!string.IsNullOrEmpty(vm.RowVersionBase64))
+                    vm.RowVersion = Convert.FromBase64String(vm.RowVersionBase64);
+
+
+                // Update scalar properties
+                existing.Title = vm.Title;
+                existing.Description = vm.Description;
+                existing.Price = vm.Price;
+                existing.TrailerUrl = vm.TrailerUrl;
+                existing.StartDate = vm.StartDate;
+                existing.EndDate = vm.EndDate;
+                existing.MovieStatus = vm.MovieStatus;
+                existing.CinemaId = vm.CinemaId;
+                existing.CategoryId = vm.CategoryId;
+
+                // Replace poster?
+                if (vm.PosterFile != null && vm.PosterFile.Length > 0)
+                {
+                    if (!string.IsNullOrEmpty(existing.ImgUrl) && existing.ImgUrl.StartsWith("/uploads/"))
+                    {
+                        DeleteLocalFile(existing.ImgUrl);
+                    }
+                    existing.ImgUrl = await SaveFileAsync(vm.PosterFile, "movies");
+                }
+
+                // Delete selected additional images
+                if (vm.ImageIdsToDelete != null && vm.ImageIdsToDelete.Any())
+                {
+                    var toDelete = existing.MovieImgs.Where(mi => vm.ImageIdsToDelete.Contains(mi.Id)).ToList();
+                    foreach (var img in toDelete)
+                    {
+                        if (!string.IsNullOrEmpty(img.ImgUrl) && img.ImgUrl.StartsWith("/uploads/"))
+                            DeleteLocalFile(img.ImgUrl);
+
+                        _context.MovieImgs.Remove(img);
+                    }
+                }
+
+                // Add newly uploaded images
+                if (vm.UploadedImages != null && vm.UploadedImages.Any())
+                {
+                    foreach (var f in vm.UploadedImages)
+                    {
+                        if (f != null && f.Length > 0)
+                        {
+                            var url = await SaveFileAsync(f, "movies");
+                            _context.MovieImgs.Add(new MovieImg { MovieId = existing.Id, ImgUrl = url });
+                        }
+                    }
+                }
+
+                // Sync MovieActors: remove ones not selected, add new ones
+                var existingActorIds = existing.MovieActors.Select(ma => ma.ActorId).ToList();
+                var toRemove = existing.MovieActors.Where(ma => !vm.SelectedActorIds.Contains(ma.ActorId)).ToList();
+                foreach (var rem in toRemove) _context.MovieActors.Remove(rem);
+
+                var toAdd = vm.SelectedActorIds.Where(aid => !existingActorIds.Contains(aid)).Distinct();
+                foreach (var add in toAdd) _context.MovieActors.Add(new MovieActor { MovieId = existing.Id, ActorId = add });
+
+                await _context.SaveChangesAsync();
+                await tx.CommitAsync();
+
+                TempData["Success"] = "Movie updated.";
                 return RedirectToAction(nameof(Index));
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogError(ex, "Concurrency error editing movie {MovieId}", id);
-                if (!await _context.Movies.AnyAsync(e => e.Id == movie.Id))
-                    return NotFound();
-
-                ModelState.AddModelError("", "Concurrency error. Please try again.");
-                return View(movie);
+                await tx.RollbackAsync();
+                _logger.LogWarning(ex, "Concurrency conflict when editing movie {MovieId}", id);
+                ModelState.AddModelError("", "This record was modified by another user. Please reload and try again.");
+                await PopulateVmSelects(vm);
+                return View(vm);
             }
             catch (Exception ex)
             {
+                await tx.RollbackAsync();
                 _logger.LogError(ex, "Edit failed for movie {MovieId}", id);
                 ModelState.AddModelError("", "Error saving changes: " + ex.Message);
-                return View(movie);
+                await PopulateVmSelects(vm);
+                return View(vm);
             }
         }
 
-        // Delete GET
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null) return NotFound();
-            var movie = await _context.Movies
-                .Include(m => m.Category)
-                .Include(m => m.Cinema)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (movie == null) return NotFound();
-            return View(movie);
-        }
-
-        // Delete POST
+        // Delete confirmed (keeps your logic)
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
@@ -216,41 +335,16 @@ namespace MovieTickets.Areas.Admin.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // helper: save poster and return public path
-        private async Task<string> SavePosterAsync(IFormFile posterFile)
+        // ----------------- Helper methods -----------------
+
+        private async Task PopulateVmSelects(MovieFormViewModel vm)
         {
-            var uploadsFolder = Path.Combine(_env.WebRootPath, "uploads", "movies");
-            Directory.CreateDirectory(uploadsFolder);
-            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(posterFile.FileName)}";
-            var filePath = Path.Combine(uploadsFolder, fileName);
-            using var fs = new FileStream(filePath, FileMode.Create);
-            await posterFile.CopyToAsync(fs);
-            return $"/uploads/movies/{fileName}";
+            vm.Cinemas = await _context.Cinemas.OrderBy(c => c.Name).Select(c => new SelectListItem(c.Name, c.Id.ToString(), c.Id == vm.CinemaId)).ToListAsync();
+            vm.Categories = await _context.Categories.OrderBy(c => c.Name).Select(c => new SelectListItem(c.Name, c.Id.ToString(), c.Id == vm.CategoryId)).ToListAsync();
+            vm.Actors = await _context.Actors.OrderBy(a => a.FirstName)
+                .Select(a => new SelectListItem($"{a.FirstName} {a.LastName}", a.Id.ToString(), vm.SelectedActorIds.Contains(a.Id))).ToListAsync();
         }
 
-        private void DeleteLocalFile(string publicPath)
-        {
-            try
-            {
-                var path = Path.Combine(_env.WebRootPath, publicPath.TrimStart('/').Replace("/", Path.DirectorySeparatorChar.ToString()));
-                if (System.IO.File.Exists(path)) System.IO.File.Delete(path);
-            }
-            catch
-            {
-                // ignore delete errors
-            }
-        }
-
-        // helper: populate select lists
-        private async Task PopulateSelectListsAsync(int? selectedCategory = null, int? selectedCinema = null)
-        {
-            var cats = await _context.Categories.OrderBy(c => c.Name).ToListAsync();
-            var cinemas = await _context.Cinemas.OrderBy(c => c.Name).ToListAsync();
-            ViewData["CategoryId"] = new SelectList(cats, "Id", "Name", selectedCategory);
-            ViewData["CinemaId"] = new SelectList(cinemas, "Id", "Name", selectedCinema);
-        }
-
-        // helper: serialize ModelState errors
         private string SerializeModelState()
         {
             var errors = ModelState
@@ -260,6 +354,78 @@ namespace MovieTickets.Areas.Admin.Controllers
                     Errors = kv.Value.Errors.Select(e => string.IsNullOrEmpty(e.ErrorMessage) ? e.Exception?.Message : e.ErrorMessage).ToArray()
                 }).ToList();
             return System.Text.Json.JsonSerializer.Serialize(errors);
+        }
+
+        // File validation: ensures allowed extension and size
+        private bool ValidateFiles(IFormFile? poster, IEnumerable<IFormFile>? images)
+        {
+            if (poster != null)
+            {
+                if (!IsAllowedFile(poster))
+                {
+                    ModelState.AddModelError("PosterFile", $"Poster must be an image ({string.Join(", ", _allowedExtensions)}) and <= {_maxFileBytes / (1024 * 1024)} MB.");
+                    return false;
+                }
+            }
+
+            if (images != null)
+            {
+                foreach (var f in images)
+                {
+                    if (f == null) continue;
+                    if (!IsAllowedFile(f))
+                    {
+                        ModelState.AddModelError("UploadedImages", $"Uploaded images must be images ({string.Join(", ", _allowedExtensions)}) and each <= {_maxFileBytes / (1024 * 1024)} MB.");
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        private bool IsAllowedFile(IFormFile f)
+        {
+            var ext = Path.GetExtension(f.FileName).ToLowerInvariant();
+            if (!_allowedExtensions.Contains(ext)) return false;
+            if (f.Length <= 0 || f.Length > _maxFileBytes) return false;
+            return true;
+        }
+
+        // Save file to wwwroot/uploads/<folder> and return public url (/uploads/<folder>/<filename>)
+        private async Task<string> SaveFileAsync(IFormFile file, string folder)
+        {
+            var uploadsFolder = Path.Combine(_env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), "uploads", folder);
+            Directory.CreateDirectory(uploadsFolder);
+
+            var ext = Path.GetExtension(file.FileName);
+            var fileName = $"{Guid.NewGuid()}{ext}";
+            var filePath = Path.Combine(uploadsFolder, fileName);
+            await using var fs = new FileStream(filePath, FileMode.Create);
+            await file.CopyToAsync(fs);
+            return $"/uploads/{folder}/{fileName}";
+        }
+
+        // Delete local file and log if failed
+        private bool DeleteLocalFile(string publicPath)
+        {
+            try
+            {
+                var root = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                var trimmed = publicPath.TrimStart('/');
+                var path = Path.Combine(root, trimmed.Replace('/', Path.DirectorySeparatorChar));
+                if (System.IO.File.Exists(path))
+                {
+                    System.IO.File.Delete(path);
+                    return true;
+                }
+                _logger.LogWarning("File to delete not found: {Path}", path);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to delete local file {PublicPath}", publicPath);
+                return false;
+            }
         }
     }
 }

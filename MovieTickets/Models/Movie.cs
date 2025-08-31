@@ -36,7 +36,8 @@ namespace MovieTickets.Models
 
         public int CategoryId { get; set; }
         public Category Category { get; set; }
-
+        [Timestamp]
+        public byte[] RowVersion { get; set; }
         // Relations
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 

@@ -1,23 +1,26 @@
 ﻿@model MovieTickets.Models.Movie
 @{
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Delete Movie";
 }
 
-<h3 class="text-danger">Delete Movie</h3>
+<h3>Delete Movie</h3>
 
-<div class="card mb-3">
-    <div class="card-body">
-        <h5>@Model.Title</h5>
-        <p>@Model.Description</p>
-        <p><strong>Category:</strong> @Model.Category?.Name</p>
-    </div>
+<div class="alert alert-warning">
+    Are you sure you want to delete the movie "<strong>@Model.Title</strong>"?
 </div>
 
-<form asp-action="Delete" method="post">
+<dl class="row">
+    <dt class="col-sm-3">Title</dt>
+    <dd class="col-sm-9">@Model.Title</dd>
+    <dt class="col-sm-3">Category</dt>
+    <dd class="col-sm-9">@Model.Category?.Name</dd>
+    <dt class="col-sm-3">Cinema</dt>
+    <dd class="col-sm-9">@Model.Cinema?.Name</dd>
+</dl>
+
+<form asp-action="Delete" asp-route-id="@Model.Id" method="post">
     @Html.AntiForgeryToken()
-    <input type="hidden" asp-for="Id" />
-    <div class="d-flex gap-2">
-        <button type="submit" class="btn btn-danger">Yes, Delete</button>
-        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
-    </div>
+    <button type="submit" class="btn btn-danger">Yes, delete</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
 </form>
