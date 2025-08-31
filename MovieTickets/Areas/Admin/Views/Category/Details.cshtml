@@ -1,0 +1,31 @@
+﻿@model MovieTickets.Models.Category
+
+@{
+    ViewData["Title"] = "Category Details";
+}
+
+<h2>Category: @Model.Name</h2>
+
+<hr />
+
+<h5>Linked Movies</h5>
+@if (Model.MovieCategories != null && Model.MovieCategories.Any())
+{
+    <ul class="list-group">
+        @foreach (var mc in Model.MovieCategories)
+        {
+            <li class="list-group-item">
+                <strong>@mc.Movie.Title</strong> (@mc.Movie.StartDate.ToShortDateString())
+            </li>
+        }
+    </ul>
+}
+else
+{
+    <p class="text-muted">No movies linked to this category.</p>
+}
+
+<div class="mt-3">
+    <a asp-action="Index" class="btn btn-secondary">Back</a>
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit</a>
+</div>

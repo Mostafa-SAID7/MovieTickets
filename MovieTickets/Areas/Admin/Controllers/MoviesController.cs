@@ -1,13 +1,9 @@
-﻿using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.Blazor;
 using MovieTickets.Areas.Admin.ViewModels;
 using MovieTickets.Data;
 using MovieTickets.Models;
-using System.IO;
 
 namespace MovieTickets.Areas.Admin.Controllers
 {

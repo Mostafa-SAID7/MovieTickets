@@ -1,0 +1,14 @@
+﻿@model MovieTickets.Areas.Admin.ViewModels.CinemaVM
+
+@{
+    ViewData["Title"] = "Create Cinema";
+}
+
+<h2>Create Cinema</h2>
+<hr />
+
+<form asp-action="Create" enctype="multipart/form-data">
+    <partial name="_CinemaFormPartial" model="Model" />
+    <button type="submit" class="btn btn-success">Save</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>

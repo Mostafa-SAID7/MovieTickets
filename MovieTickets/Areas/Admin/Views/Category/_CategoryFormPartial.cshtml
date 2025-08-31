@@ -1,0 +1,7 @@
+﻿@model MovieTickets.Areas.Admin.ViewModels.CategoryFormViewModel
+
+<div class="mb-3">
+    <label asp-for="Name" class="form-label fw-bold"></label>
+    <input asp-for="Name" class="form-control" placeholder="Enter category name" />
+    <span asp-validation-for="Name" class="text-danger"></span>
+</div>

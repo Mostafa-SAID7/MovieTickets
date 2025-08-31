@@ -1,0 +1,15 @@
+﻿@model MovieTickets.Areas.Admin.ViewModels.CategoryFormViewModel
+
+@{
+    ViewData["Title"] = "Create Category";
+}
+
+<h2>Create Category</h2>
+<hr />
+
+<form asp-action="Create" method="post">
+    <partial name="_CategoryFormPartial" model="Model" />
+
+    <button type="submit" class="btn btn-success">Save</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>

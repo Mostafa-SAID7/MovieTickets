@@ -16,6 +16,10 @@ namespace MovieTickets.Models
 
         public int UserId { get; set; }   // better to use int instead of string
         public User User { get; set; }
+        public int CinemaId { get; set; }
+        public Cinema Cinema { get; set; }
+        public ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
+
     }
 
 }

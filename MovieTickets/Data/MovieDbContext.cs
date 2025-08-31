@@ -16,6 +16,8 @@ namespace MovieTickets.Data
         public DbSet<MovieCategory> MovieCategories { get; set; }
         public DbSet<MovieImg> MovieImgs { get; set; }
         public DbSet<Booking> Bookings { get; set; }
+        public DbSet<Ticket> Tickets { get; set; }
+
         public DbSet<User> Users { get; set; }
         public DbSet<Notification> Notifications { get; set; }
 
@@ -75,6 +77,12 @@ namespace MovieTickets.Data
                 .WithMany(u => u.Bookings)
                 .HasForeignKey(b => b.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+            // Relation: Booking -> Tickets
+            modelBuilder.Entity<Ticket>()
+                .HasOne(t => t.Booking)
+                .WithMany(b => b.Tickets)
+                .HasForeignKey(t => t.BookingId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // =============================
             // 🔹 Seed Data

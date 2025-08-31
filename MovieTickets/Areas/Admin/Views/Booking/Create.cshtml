@@ -1,0 +1,64 @@
+﻿@model MovieTickets.Areas.Admin.ViewModels.BookingVM
+
+@{
+    ViewData["Title"] = "Create Booking";
+    var moviePrices = ViewBag.MoviePrices as Dictionary<int, decimal>;
+}
+
+<h2>Create Booking</h2>
+
+<form asp-action="Create" method="post">
+    <div class="form-group">
+        <label asp-for="BookingDate"></label>
+        <input asp-for="BookingDate" class="form-control" />
+    </div>
+
+    <div class="form-group">
+        <label asp-for="MovieId"></label>
+        <select asp-for="MovieId" class="form-control" asp-items="Model.Movies" id="MovieSelect"></select>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="UserId"></label>
+        <select asp-for="UserId" class="form-control" asp-items="Model.Users"></select>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="CinemaId"></label>
+        <select asp-for="CinemaId" class="form-control" asp-items="Model.Cinemas"></select>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="TicketCount"></label>
+        <input asp-for="TicketCount" class="form-control" id="TicketCount" />
+    </div>
+
+    <div class="form-group">
+        <label asp-for="TotalPrice"></label>
+        <input asp-for="TotalPrice" class="form-control" id="TotalPrice" readonly />
+    </div>
+
+    <button type="submit" class="btn btn-success">Create</button>
+    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+</form>
+
+@section Scripts {
+    <script>
+        const moviePrices = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(moviePrices));
+        const movieSelect = document.getElementById("MovieSelect");
+        const ticketInput = document.getElementById("TicketCount");
+        const priceInput = document.getElementById("TotalPrice");
+
+        function updatePrice() {
+            const movieId = parseInt(movieSelect.value);
+            const ticketCount = parseInt(ticketInput.value) || 0;
+            const moviePrice = moviePrices[movieId] || 0;
+            priceInput.value = (ticketCount * moviePrice).toFixed(2);
+        }
+
+        movieSelect.addEventListener("change", updatePrice);
+        ticketInput.addEventListener("input", updatePrice);
+
+        updatePrice(); // init
+    </script>
+}

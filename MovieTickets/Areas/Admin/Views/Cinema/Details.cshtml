@@ -1,0 +1,27 @@
+﻿@model MovieTickets.Models.Cinema
+
+@{
+    ViewData["Title"] = "Cinema Details";
+}
+
+<h2>Cinema Details</h2>
+<hr />
+
+<div class="row">
+    <div class="col-md-4">
+        @if (!string.IsNullOrEmpty(Model.CinemaLogo))
+        {
+            <img src="@Model.CinemaLogo" alt="logo" class="img-fluid rounded shadow" />
+        }
+    </div>
+    <div class="col-md-8">
+        <h3>@Model.Name</h3>
+        <p><strong>Address:</strong> @Model.Address</p>
+        <p><strong>Description:</strong> @Model.Description</p>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">Edit</a>
+    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+</div>

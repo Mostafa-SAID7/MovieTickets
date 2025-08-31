@@ -44,6 +44,7 @@ namespace MovieTickets.Models
         public ICollection<MovieActor> MovieActors { get; set; } = new List<MovieActor>();
         public ICollection<MovieImg> MovieImgs { get; set; } = new List<MovieImg>();
         public ICollection<MovieCategory> MovieCategories { get; set; } = new List<MovieCategory>();
+
     }
 
 }

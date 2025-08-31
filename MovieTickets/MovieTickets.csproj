@@ -9,6 +9,7 @@
   <ItemGroup>
     <Folder Include="Models\NewFolder\" />
     <Folder Include="wwwroot\uploads\movies\" />
+    <Folder Include="wwwroot\uploads\cinemas\" />
   </ItemGroup>
 
   <ItemGroup>
