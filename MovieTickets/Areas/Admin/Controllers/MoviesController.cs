@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.Blazor;
 using MovieTickets.Areas.Admin.ViewModels;
 using MovieTickets.Data;
 using MovieTickets.Models;
@@ -317,23 +318,124 @@ namespace MovieTickets.Areas.Admin.Controllers
         }
 
         // Delete confirmed (keeps your logic)
+        // GET: Admin/Movies/Delete/5
+        public async Task<IActionResult> Delete(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var movie = await _context.Movies
+                .Include(m => m.Category)
+                .Include(m => m.Cinema)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (movie == null)
+            {
+                return NotFound();
+            }
+
+            return View(movie);
+        }
+
+        // Delete POST
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var movie = await _context.Movies.FindAsync(id);
-            if (movie != null)
+            // Load the movie with all dependent collections that might block deletion
+            var movie = await _context.Movies
+                .Include(m => m.MovieImgs)
+                .Include(m => m.MovieActors)
+                .Include(m => m.MovieCategories)
+                .Include(m => m.Bookings)
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (movie == null)
             {
+                TempData["Error"] = "Movie not found.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // If there are bookings, do NOT delete - inform the user.
+            // (If you prefer to cascade-delete bookings, remove this check and delete them explicitly.)
+            if (movie.Bookings != null && movie.Bookings.Any())
+            {
+                TempData["Error"] = "Cannot delete movie because there are existing bookings for it. Please remove bookings first.";
+                return RedirectToAction(nameof(Delete), new { id });
+            }
+
+            await using var tx = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // Delete poster file (if local)
                 if (!string.IsNullOrEmpty(movie.ImgUrl) && movie.ImgUrl.StartsWith("/uploads/"))
                 {
-                    DeleteLocalFile(movie.ImgUrl);
+                    try
+                    {
+                        DeleteLocalFile(movie.ImgUrl);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log but continue — not fatal
+                        _logger.LogWarning(ex, "Failed to delete poster file for movie {MovieId}", id);
+                    }
                 }
+
+                // Delete additional images (files + DB rows)
+                if (movie.MovieImgs != null && movie.MovieImgs.Any())
+                {
+                    foreach (var img in movie.MovieImgs.ToList())
+                    {
+                        try
+                        {
+                            if (!string.IsNullOrEmpty(img.ImgUrl) && img.ImgUrl.StartsWith("/uploads/"))
+                                DeleteLocalFile(img.ImgUrl);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to delete movie image file {ImgUrl} for movie {MovieId}", img.ImgUrl, id);
+                        }
+
+                        _context.MovieImgs.Remove(img);
+                    }
+                }
+
+                // Remove many-to-many links (MovieActors, MovieCategories)
+                if (movie.MovieActors != null && movie.MovieActors.Any())
+                    _context.MovieActors.RemoveRange(movie.MovieActors);
+
+                if (movie.MovieCategories != null && movie.MovieCategories.Any())
+                    _context.MovieCategories.RemoveRange(movie.MovieCategories);
+
+                // Finally remove the movie entity
                 _context.Movies.Remove(movie);
+
                 await _context.SaveChangesAsync();
+                await tx.CommitAsync();
+
                 TempData["Success"] = "Movie deleted.";
+                return RedirectToAction(nameof(Index));
             }
-            return RedirectToAction(nameof(Index));
+            catch (DbUpdateException dbEx)
+            {
+                await tx.RollbackAsync();
+                _logger.LogError(dbEx, "DB error while deleting movie {MovieId}", id);
+
+                // Provide a friendly message; include more details in logs
+                TempData["Error"] = "Unable to delete the movie due to database constraints. Ensure related records (bookings, links) are removed first.";
+                return RedirectToAction(nameof(Delete), new { id });
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync();
+                _logger.LogError(ex, "Unexpected error while deleting movie {MovieId}", id);
+                TempData["Error"] = "An unexpected error occurred while deleting the movie.";
+                return RedirectToAction(nameof(Delete), new { id });
+            }
         }
+
 
         // ----------------- Helper methods -----------------
 
