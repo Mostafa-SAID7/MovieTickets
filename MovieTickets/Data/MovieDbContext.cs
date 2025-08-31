@@ -80,7 +80,6 @@ namespace MovieTickets.Data
             // 🔹 Seed Data
             // =============================
 
-            // Seed Cinemas (لازم ييجي الأول عشان Movies تعتمد عليه)
             modelBuilder.Entity<Cinema>().HasData(
                 new Cinema { Id = 1, Name = "Cinema Cairo", Description = "Main cinema in Cairo", Address = "123 Main St" },
                 new Cinema { Id = 2, Name = "Alex Cinema", Description = "Cinema in Alexandria", Address = "123 Main St" },
@@ -103,7 +102,10 @@ namespace MovieTickets.Data
                     Id = 1,
                     Title = "Avengers: Endgame",
                     Description = "Superheroes unite to battle Thanos.",
+                    Price = 100,
                     StartDate = new DateTime(2019, 4, 26),
+                    EndDate = new DateTime(2025, 12, 31),
+
                     CategoryId = 1,
                     CinemaId = 1
                 },
@@ -144,6 +146,16 @@ namespace MovieTickets.Data
                     CinemaId = 2
                 }
             );
+            // Seed Actors
+            modelBuilder.Entity<Actor>().HasData(
+                new Actor { Id = 1, FirstName = "Robert", LastName = "Downey Jr." },
+                new Actor { Id = 2, FirstName = "Chris", LastName = "Evans" },
+                new Actor { Id = 3, FirstName = "Scarlett", LastName = "Johansson" },
+                new Actor { Id = 4, FirstName = "Leonardo", LastName = "DiCaprio" },
+                new Actor { Id = 5, FirstName = "Tom", LastName = "Hanks" }
+            );
+    
+
         }
     }
 }

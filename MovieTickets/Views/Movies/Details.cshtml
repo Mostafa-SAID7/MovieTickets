@@ -1,0 +1,65 @@
+﻿@model MovieTickets.Models.Movie
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="row">
+    <div class="col-md-6">
+        <!-- Poster / Main image -->
+        <img src="@(string.IsNullOrEmpty(Model.ImgUrl) ? "/images/no-poster.png" : Model.ImgUrl)"
+             alt="@Model.Title" class="img-fluid rounded mb-3" />
+
+        <!-- Additional images slider -->
+        @if (Model.MovieImgs != null && Model.MovieImgs.Any())
+        {
+            <div id="movieCarousel" class="carousel slide mb-3" data-bs-ride="carousel">
+                <div class="carousel-inner">
+                    @{
+                        var index = 0;
+                        foreach (var img in Model.MovieImgs)
+                        {
+                            <div class="carousel-item @(index == 0 ? "active" : "")">
+                                <img src="@img.ImgUrl" class="d-block w-100 rounded" alt="Extra image" style="height:400px; object-fit:cover;">
+                            </div>
+                            index++;
+                        }
+                    }
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#movieCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon"></span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#movieCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon"></span>
+                </button>
+            </div>
+        }
+    </div>
+
+    <div class="col-md-6">
+        <h2>@Model.Title</h2>
+        <p class="text-muted">@Model.Cinema?.Name</p>
+        <p><strong>Price:</strong> @Model.Price.ToString("C")</p>
+        <p><strong>Dates:</strong> @Model.StartDate.ToShortDateString() – @Model.EndDate.ToShortDateString()</p>
+        <p><strong>Status:</strong> @Model.MovieStatus</p>
+
+        <p>@Model.Description</p>
+
+        @if (!string.IsNullOrEmpty(Model.TrailerUrl))
+        {
+            <div class="ratio ratio-16x9 mb-3">
+                <iframe src="@Model.TrailerUrl" frameborder="0" allowfullscreen></iframe>
+            </div>
+        }
+
+        @if (Model.MovieActors != null && Model.MovieActors.Any())
+        {
+            <h5>Actors</h5>
+            <ul>
+                @foreach (var ma in Model.MovieActors)
+                {
+                    <li>@ma.Actor.FirstName @ma.Actor.LastName</li>
+                }
+            </ul>
+        }
+    </div>
+</div>

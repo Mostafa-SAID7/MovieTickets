@@ -70,10 +70,12 @@ namespace MovieTickets.Areas.Admin.Controllers
         {
             if (id == null) return NotFound();
             var movie = await _context.Movies
-                .Include(m => m.Category)
-                .Include(m => m.Cinema)
-                .Include(m => m.MovieImgs)
-                .FirstOrDefaultAsync(m => m.Id == id);
+        .Include(m => m.Category)
+        .Include(m => m.Cinema)
+        .Include(m => m.MovieImgs)
+        .Include(m => m.MovieActors)
+            .ThenInclude(ma => ma.Actor)
+        .FirstOrDefaultAsync(m => m.Id == id);
             if (movie == null) return NotFound();
             return View(movie);
         }
@@ -130,7 +132,7 @@ namespace MovieTickets.Areas.Admin.Controllers
                 {
                     movie.ImgUrl = await SaveFileAsync(vm.PosterFile, "movies");
                 }
-
+                await _context.SaveChangesAsync();
                 // Additional images
                 if (vm.UploadedImages != null)
                 {
@@ -248,6 +250,7 @@ namespace MovieTickets.Areas.Admin.Controllers
                 existing.MovieStatus = vm.MovieStatus;
                 existing.CinemaId = vm.CinemaId;
                 existing.CategoryId = vm.CategoryId;
+                
 
                 // Replace poster?
                 if (vm.PosterFile != null && vm.PosterFile.Length > 0)
@@ -461,11 +464,12 @@ namespace MovieTickets.Areas.Admin.Controllers
         // File validation: ensures allowed extension and size
         private bool ValidateFiles(IFormFile? poster, IEnumerable<IFormFile>? images)
         {
-            if (poster != null)
+            if (poster != null && poster.Length > 0)
             {
                 if (!IsAllowedFile(poster))
                 {
-                    ModelState.AddModelError("PosterFile", $"Poster must be an image ({string.Join(", ", _allowedExtensions)}) and <= {_maxFileBytes / (1024 * 1024)} MB.");
+                    ModelState.AddModelError("PosterFile",
+                $"Poster must be an image ({string.Join(", ", _allowedExtensions)}) and <= {_maxFileBytes / (1024 * 1024)} MB.");
                     return false;
                 }
             }
@@ -474,10 +478,11 @@ namespace MovieTickets.Areas.Admin.Controllers
             {
                 foreach (var f in images)
                 {
-                    if (f == null) continue;
+                    if (f == null || f.Length == 0) continue;
                     if (!IsAllowedFile(f))
                     {
-                        ModelState.AddModelError("UploadedImages", $"Uploaded images must be images ({string.Join(", ", _allowedExtensions)}) and each <= {_maxFileBytes / (1024 * 1024)} MB.");
+                        ModelState.AddModelError("UploadedImages",
+                     $"Uploaded images must be images ({string.Join(", ", _allowedExtensions)}) and each <= {_maxFileBytes / (1024 * 1024)} MB.");
                         return false;
                     }
                 }

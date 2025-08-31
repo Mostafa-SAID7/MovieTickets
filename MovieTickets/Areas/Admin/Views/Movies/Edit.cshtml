@@ -1,4 +1,6 @@
-﻿@model MovieTickets.Areas.Admin.ViewModels.MovieFormViewModel
+﻿@using Microsoft.AspNetCore.Mvc.Rendering
+
+@model MovieTickets.Areas.Admin.ViewModels.MovieFormViewModel
 @{
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     ViewData["Title"] = "Edit Movie";
@@ -95,11 +97,26 @@
             </div>
         }
     </div>
+    <div class="small text-muted">SelectedActorIds: @string.Join(",", Model.SelectedActorIds ?? new List<int>())</div>
 
-    <div class="form-group">
-        <label>Actors</label>
-        <select asp-for="SelectedActorIds" asp-items="Model.Actors" multiple class="form-control"></select>
-    </div>
+    <label>Actors</label>
+    <select name="SelectedActorIds" id="SelectedActorIds" multiple class="form-control">
+        @foreach (var a in Model.Actors ?? Enumerable.Empty<SelectListItem>())
+        {
+            var valInt = 0;
+            int.TryParse(a.Value, out valInt);
+            var selected = Model.SelectedActorIds != null && Model.SelectedActorIds.Contains(valInt);
+
+            if (selected)
+            {
+                <option value="@a.Value" selected="selected">@a.Text</option>
+            }
+            else
+            {
+                <option value="@a.Value">@a.Text</option>
+            }
+        }
+    </select>
 
     <div class="form-row">
         <div class="form-group col-md-6">
@@ -110,6 +127,7 @@
             <label asp-for="CategoryId"></label>
             <select asp-for="CategoryId" asp-items="Model.Categories" class="form-control"></select>
         </div>
+       
     </div>
 
     <button type="submit" class="btn btn-primary">Save</button>

@@ -48,7 +48,7 @@
 
     <div class="form-group">
         <label>Poster (single)</label>
-        <input asp-for="PosterFile" type="file" class="form-control-file" />
+        <input asp-for="PosterFile" type="file" class="form-control-file" accept=".jpg,.jpeg,.png,.gif" />
         <img id="posterPreview" style="max-height:150px; display:none;" />
     </div>
 
@@ -76,11 +76,29 @@
             <select asp-for="CategoryId" asp-items="Model.Categories" class="form-control"></select>
             <span asp-validation-for="CategoryId" class="text-danger"></span>
         </div>
+        <div class="small text-muted">SelectedActorIds: @string.Join(",", Model.SelectedActorIds ?? new List<int>())</div>
 
-        <div class="form-group col-md-4">
+        <div class="form-group">
             <label>Actors</label>
-            <select asp-for="SelectedActorIds" asp-items="Model.Actors" multiple class="form-control"></select>
+            <select name="SelectedActorIds" id="SelectedActorIds" multiple class="form-control">
+                @foreach (var a in Model.Actors ?? Enumerable.Empty<SelectListItem>())
+                {
+                    var valInt = 0;
+                    int.TryParse(a.Value, out valInt);
+                    var selected = Model.SelectedActorIds != null && Model.SelectedActorIds.Contains(valInt);
+
+                    if (selected)
+                    {
+                        <option value="@a.Value" selected="selected">@a.Text</option>
+                    }
+                    else
+                    {
+                        <option value="@a.Value">@a.Text</option>
+                    }
+                }
+            </select>
         </div>
+
     </div>
 
     <button type="submit" class="btn btn-success">Create</button>

@@ -40,14 +40,15 @@
             {
                 foreach (var ma in Model.MovieActors)
                 {
-                    <li>@(ma.Actor?.FirstName + " " + ma.Actor?.LastName)</li>
+                    <li>@($"{ma.Actor?.FirstName} {ma.Actor?.LastName}")</li>
                 }
             }
             else
             {
-                <li>None</li>
+                <li>No actors assigned</li>
             }
         </ul>
+
 
         <h5>Images</h5>
         <div>
