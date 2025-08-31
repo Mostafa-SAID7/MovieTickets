@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using MovieTickets.Areas.Admin.ViewModels;
 using MovieTickets.Data;
+using MovieTickets.Helpers;
 using MovieTickets.Models;
-using System.IO;
 
 namespace MovieTickets.Controllers
 {
@@ -13,9 +13,6 @@ namespace MovieTickets.Controllers
         private readonly MovieDbContext _context;
         private readonly IWebHostEnvironment _env;
 
-        private readonly string[] _allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
-        private readonly long _maxFileBytes = 5 * 1024 * 1024; // 5 MB
-
         public MoviesController(MovieDbContext context, IWebHostEnvironment env)
         {
             _context = context;
@@ -23,33 +20,55 @@ namespace MovieTickets.Controllers
         }
 
         // ---------------- Index ----------------
-        public async Task<IActionResult> Index(string searchString, int? categoryId, int pageNumber = 1, int pageSize = 6)
+        public async Task<IActionResult> Index(string searchString, int? categoryId, int? cinemaId, int pageNumber = 1)
         {
-            var query = _context.Movies
+            const int pageSize = 6;
+
+            var moviesQuery = _context.Movies
                 .Include(m => m.Cinema)
                 .Include(m => m.Category)
+                .Include(m => m.MovieImgs)
+                .Include(m => m.MovieActors).ThenInclude(ma => ma.Actor)
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(searchString))
-                query = query.Where(m => m.Title.Contains(searchString));
+            {
+                // safe LIKE (depends on DB collation for case sensitivity)
+                moviesQuery = moviesQuery.Where(m => EF.Functions.Like(m.Title, $"%{searchString}%"));
+            }
 
-            if (categoryId.HasValue && categoryId > 0)
-                query = query.Where(m => m.CategoryId == categoryId);
+            if (categoryId.HasValue)
+            {
+                moviesQuery = moviesQuery.Where(m => m.CategoryId == categoryId.Value);
+            }
 
-            var total = await query.CountAsync();
-            var movies = await query
-                .OrderByDescending(m => m.StartDate)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
+            if (cinemaId.HasValue)
+            {
+                moviesQuery = moviesQuery.Where(m => m.CinemaId == cinemaId.Value);
+            }
 
-            ViewBag.Categories = await _context.Categories.OrderBy(c => c.Name).ToListAsync();
+            // Prepare select lists for view (no DB access from view)
+            var categories = await _context.Categories.OrderBy(c => c.Name).ToListAsync();
+            var cinemas = await _context.Cinemas.OrderBy(c => c.Name).ToListAsync();
+
+            ViewBag.Categories = new SelectList(categories, "Id", "Name", categoryId);
+            ViewBag.Cinemas = new SelectList(cinemas, "Id", "Name", cinemaId);
+
             ViewBag.CurrentFilter = searchString;
             ViewBag.CurrentCategory = categoryId;
-            ViewBag.PageNumber = pageNumber;
-            ViewBag.TotalPages = (int)Math.Ceiling(total / (double)pageSize);
+            ViewBag.CurrentCinema = cinemaId;
 
-            return View(movies);
+            var paginatedMovies = await PaginatedList<Movie>.CreateAsync(
+                moviesQuery.OrderByDescending(m => m.StartDate),
+                pageNumber,
+                pageSize
+            );
+
+            // If AJAX request return only partial (the _MovieCards partial)
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return PartialView("_MovieCards", paginatedMovies);
+
+            return View(paginatedMovies);
         }
 
         // ---------------- Details ----------------
@@ -67,25 +86,6 @@ namespace MovieTickets.Controllers
             return View(movie);
         }
 
- 
-        // ---------------- Helpers ----------------
-        private async Task PopulateVmSelects(MovieFormViewModel vm)
-        {
-            vm.Cinemas = await _context.Cinemas.OrderBy(c => c.Name)
-                .Select(c => new SelectListItem(c.Name, c.Id.ToString(), c.Id == vm.CinemaId))
-                .ToListAsync();
-
-            vm.Categories = await _context.Categories.OrderBy(c => c.Name)
-                .Select(c => new SelectListItem(c.Name, c.Id.ToString(), c.Id == vm.CategoryId))
-                .ToListAsync();
-        }
-
-      
-
-          
-
-      
-
-       
+        // (Add your other actions here: Create/Edit/Delete if any)
     }
 }

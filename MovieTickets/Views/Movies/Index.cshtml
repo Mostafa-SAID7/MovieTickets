@@ -1,83 +1,56 @@
-﻿@model IEnumerable<MovieTickets.Models.Movie>
+﻿@using MovieTickets.Helpers
+@using Microsoft.AspNetCore.Mvc.Rendering
+@model PaginatedList<MovieTickets.Models.Movie>
 
 @{
     ViewData["Title"] = "Movies";
-    var currentFilter = ViewBag.CurrentFilter as string;
-    var currentCategory = ViewBag.CurrentCategory as int?;
-    var categories = ViewBag.Categories as List<MovieTickets.Models.Category>;
-    int pageNumber = ViewBag.PageNumber;
-    int totalPages = ViewBag.TotalPages;
 }
 
-<h2 class="mb-4">Movies</h2>
+<div class="container py-4">
+    <div class="row mb-3 align-items-center">
+        <div class="col-md-4 mb-2">
+            <input id="live-search" class="form-control" placeholder="Search movies..." value="@(ViewBag.CurrentFilter ?? "")" aria-label="Search movies" />
+        </div>
 
-<form asp-action="Index" method="get" class="row mb-4">
-    <div class="col-md-4">
-        <input type="text" name="searchString" value="@currentFilter" placeholder="Search..." class="form-control" />
-    </div>
-    <div class="col-md-4">
-        <select name="categoryId" class="form-control mr-2">
-            <option value="">All categories</option>
-            @foreach (var c in ViewBag.Categories as IEnumerable<MovieTickets.Models.Category>)
-            {
-                if (ViewBag.CurrentCategory != null && (int)ViewBag.CurrentCategory == c.Id)
-                {
-                    <option value="@c.Id" selected="selected">@c.Name</option>
-                }
-                else
-                {
-                    <option value="@c.Id">@c.Name</option>
-                }
-            }
-        </select>
-    </div>
-    <div class="col-md-2">
-        <button type="submit" class="btn btn-primary w-100">Filter</button>
-    </div>
-</form>
+        <div class="col-md-3 mb-2">
+            <!-- Category select -->
+            <select id="filter-category" class="form-select" aria-label="Filter by category" asp-items="ViewBag.Categories">
+                <option value="">All Categories</option>
+            </select>
+        </div>
 
-<div class="row row-cols-1 row-cols-md-3 g-4">
-    @foreach (var movie in Model)
-    {
-        <div class="col">
-            <div class="card h-100 shadow-sm">
-                <img src="@(string.IsNullOrEmpty(movie.ImgUrl) ? "/images/no-poster.png" : movie.ImgUrl)" class="card-img-top" alt="@movie.Title" style="height:300px; object-fit:cover;">
-                <div class="card-body">
-                    <h5 class="card-title">@movie.Title</h5>
-                    <p class="card-text text-muted">@movie.Cinema?.Name</p>
-                    <p class="card-text"><strong>@movie.Price.ToString("C")</strong></p>
-                    <a asp-action="Details" asp-route-id="@movie.Id" class="btn btn-sm btn-outline-primary">Details</a>
-                </div>
+        <div class="col-md-3 mb-2">
+            <!-- Cinema select -->
+            <select id="filter-cinema" class="form-select" aria-label="Filter by cinema" asp-items="ViewBag.Cinemas">
+                <option value="">All Cinemas</option>
+            </select>
+        </div>
+
+        <div class="col-md-2 text-end mb-2">
+            <button id="clear-filters" class="btn btn-outline-secondary btn-sm">Clear</button>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-12">
+            <div id="movies-container">
+                @await Html.PartialAsync("_MovieCards", Model)
             </div>
         </div>
-    }
+    </div>
 </div>
 
-<!-- Pagination -->
-<nav aria-label="Movie pagination" class="mt-4">
-    <ul class="pagination justify-content-center">
-        <li class="page-item @(pageNumber == 1 ? "disabled" : "")">
-            <a class="page-link" asp-action="Index"
-               asp-route-searchString="@currentFilter"
-               asp-route-categoryId="@currentCategory"
-               asp-route-pageNumber="@(pageNumber - 1)">Previous</a>
-        </li>
-
-        @for (int i = 1; i <= totalPages; i++)
-        {
-            <li class="page-item @(i == pageNumber ? "active" : "")">
-                <a class="page-link" asp-action="Index"
-                   asp-route-searchString="@currentFilter"
-                   asp-route-categoryId="@currentCategory"
-                   asp-route-pageNumber="@i">@i</a>
-            </li>
-        }
-
-        <li class="page-item @(pageNumber == totalPages ? "disabled" : "")">
-            <a class="page-link" asp-action="Index"
-               asp-route-searchString="@currentFilter"
-               asp-route-categoryId="@currentCategory"
-               asp-route-pageNumber="@(pageNumber + 1)">Next</a>
-        </li>
-    </ul>
-</nav>
+@section Scripts {
+    <script src="~/js/movies.js"></script>
+    <script>
+        (function(){
+            // initial server values for JS
+            window.__MOVIES_INITIAL = {
+                query: "@(ViewBag.CurrentFilter ?? "")",
+                categoryId: "@(ViewBag.CurrentCategory ?? "")",
+                cinemaId: "@(ViewBag.CurrentCinema ?? "")",
+                pageNumber: @(Model?.PageIndex ?? 1)
+            };
+        })();
+    </script>
+}
