@@ -1,57 +1,156 @@
 ﻿@{
-    Layout = null;
-    var title = ViewData["Title"] ?? "Movie Ticketing";
+    var title = ViewData["Title"] ?? "Movie Tickets";
 }
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>@title</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@title - Movie Tickets</title>
 
-    <link href="~/css/site.css" rel="stylesheet" />
+    <!-- Tailwind (CDN) - disable preflight so Bootstrap isn't reset -->
+    <script>
+        window.tailwind = {
+            // disable preflight (base reset) so it won't break Bootstrap components
+            config: {
+                corePlugins: { preflight: false }
+            }
+        }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Bootstrap (load AFTER Tailwind to preserve component styles) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <!-- Icons & Fonts -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Site custom CSS -->
+    <link rel="stylesheet" href="~/css/site.css" />
 
     @RenderSection("Styles", required: false)
-
 </head>
-<body>
-    <!-- Header -->
-    <header class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
-        <div class="container">
-            <a class="navbar-brand fw-bold" href="/">🎬 MovieTickets</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="mainNavbar">
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/Movies">Movies</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/Offers">Offers</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/Contact">Contact</a></li>
-                </ul>
-                <div class="d-flex align-items-center">
-                    <span class="text-muted me-3"></span>
-                    <a class="btn btn-outline-light btn-sm" href="/Admin">Admin</a>
-                </div>
+<body class="bg-white text-slate-800 dark:bg-slate-900 dark:text-slate-200">
+    <!-- HEADER -->
+    <header class="shadow-sm bg-white dark:bg-slate-800">
+        <div class="container mx-auto px-3 md:px-6 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="~/" class="d-flex align-items-center text-decoration-none nav-brand">
+                    <span class="fs-4 me-2">🎬</span>
+                    <span class="fs-5 d-none d-sm-inline">MovieTickets</span>
+                </a>
+            </div>
+
+            <!-- desktop nav -->
+            <nav class="d-none d-md-flex align-items-center gap-3" role="navigation" aria-label="Main navigation">
+                <a class="nav-link px-2 text-primary" href="~/">Home</a>
+                <a class="nav-link px-2 text-primary" href="~/Movies">Movies</a>
+                <a class="nav-link px-2 text-primary" href="~/Cinemas">Cinemas</a>
+                <a class="nav-link px-2 text-primary" href="~/Categories">Categories</a>
+                <a class="nav-link px-2 text-primary" href="~/Contact">Contact</a>
+            </nav>
+
+            <div class="d-flex align-items-center gap-2">
+                <!-- search (progressive enhancement) -->
+                <form class="d-none d-md-flex align-items-center" role="search" method="get" action="~/Movies">
+                    <input name="searchString" class="form-control form-control-sm me-2" placeholder="Search movies..." aria-label="Search movies">
+                    <button class="btn btn-sm btn-outline-secondary" type="submit" aria-label="Search"><i class="bi bi-search"></i></button>
+                </form>
+
+                <!-- Theme toggle -->
+                <button id="theme-toggle" class="btn btn-sm btn-outline-secondary" aria-label="Toggle color theme" title="Toggle theme">
+                    <i id="theme-icon" class="bi bi-moon-fill"></i>
+                </button>
+
+                <!-- Admin -->
+                <a class="btn btn-sm btn-outline-primary d-none d-md-inline" href="~/Admin"><i class="bi bi-shield-lock me-1"></i>Admin</a>
+
+                <!-- Mobile menu button -->
+                <button id="mobile-toggle" class="btn btn-sm btn-outline-secondary d-md-none" aria-controls="mobile-menu" aria-expanded="false" aria-label="Toggle menu">
+                    <i class="bi bi-list"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile menu (hidden by default) -->
+        <div id="mobile-menu" class="d-md-none bg-white dark:bg-slate-800 border-top" hidden>
+            <div class="container px-3 py-3">
+                <nav class="d-flex flex-column gap-2" role="navigation" aria-label="Mobile navigation">
+                    <a class="nav-link px-0 text-primary" href="~/">Home</a>
+                    <a class="nav-link px-0 text-primary" href="~/Movies">Movies</a>
+                    <a class="nav-link px-0 text-primary" href="~/Cinemas">Cinemas</a>
+                    <a class="nav-link px-0 text-primary" href="~/Categories">Categories</a>
+                    <a class="nav-link px-0 text-primary" href="~/Contact">Contact</a>
+
+                    <div class="mt-2 d-flex gap-2">
+                        <a class="btn btn-sm btn-outline-primary w-100" href="~/Admin"><i class="bi bi-shield-lock me-1"></i> Admin</a>
+                        <button id="mobile-theme-toggle" class="btn btn-sm btn-outline-secondary w-100">Theme</button>
+                    </div>
+                </nav>
             </div>
         </div>
     </header>
 
-    <!-- Content -->
+    <!-- MAIN -->
     <main class="container my-4">
         @RenderBody()
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-dark text-light text-center py-3 mt-auto">
-        <p class="mb-0">&copy; @DateTime.Now.Year MovieTickets. All rights reserved.</p>
+    <!-- FOOTER -->
+    <footer class="site-footer bg-slate-900 text-slate-300 mt-8">
+        <div class="container py-8">
+            <div class="row gy-4">
+                <div class="col-md-4">
+                    <h5 class="text-white">MovieTickets</h5>
+                    <p class="small text-white">Find showtimes, book tickets, and enjoy the best cinematic experience. Fast checkout, secure payments, and exclusive offers.</p>
+                    <div class="mt-3">
+                        <a class="text-white me-2" href="#" aria-label="facebook"><i class="bi bi-facebook fs-5"></i></a>
+                        <a class="text-white me-2" href="#" aria-label="twitter"><i class="bi bi-twitter fs-5"></i></a>
+                        <a class="text-white me-2" href="#" aria-label="instagram"><i class="bi bi-instagram fs-5"></i></a>
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <h6 class="text-white">Links</h6>
+                    <ul class="list-unstyled small">
+                        <li><a class="text-white" href="~/">Home</a></li>
+                        <li><a class="text-white" href="~/Movies">Movies</a></li>
+                        <li><a class="text-white" href="~/Cinemas">Cinemas</a></li>
+                        <li><a class="text-white" href="~/Categories">Categories</a></li>
+                    </ul>
+                </div>
+
+                <div class="col-md-3">
+                    <h6 class="text-white">Contact</h6>
+                    <address class="small text-white">
+                        Alexandria, Egypt<br />
+                        Phone: +20 123 456 789<br />
+                        Email: <a class="text-white" href="mailto:support@movietickets.com">support@movietickets.com</a>
+                    </address>
+                </div>
+
+                <div class="col-md-3">
+                    <h6 class="text-white">Newsletter</h6>
+                    <p class="small text-white">Get updates about upcoming releases and exclusive offers.</p>
+                    <form id="newsletterForm" class="d-flex gap-2">
+                        <input id="newsletterEmail" class="form-control form-control-sm" placeholder="Your email" aria-label="Your email" type="email" />
+                        <button class="btn btn-sm btn-primary" type="submit">Subscribe</button>
+                    </form>
+                    <div id="newsletterMsg" class="small mt-2" aria-live="polite"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="border-top border-slate-800 py-3 text-center small text-white">
+            &copy; @DateTime.Now.Year MovieTickets — All rights reserved.
+        </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js"></script>
     @RenderSection("Scripts", required: false)
 </body>
 </html>
