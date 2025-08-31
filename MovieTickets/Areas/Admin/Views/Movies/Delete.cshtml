@@ -1,18 +1,23 @@
 ﻿@model MovieTickets.Models.Movie
 @{
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
-    ViewData["Title"] = "Delete Movie";
 }
 
-<h2 class="text-danger">Delete Movie</h2>
+<h3 class="text-danger">Delete Movie</h3>
 
-<div class="card p-3 mb-3">
-    <h5>@Model.Title</h5>
-    <p>@Model.Description</p>
+<div class="card mb-3">
+    <div class="card-body">
+        <h5>@Model.Title</h5>
+        <p>@Model.Description</p>
+        <p><strong>Category:</strong> @Model.Category?.Name</p>
+    </div>
 </div>
 
 <form asp-action="Delete" method="post">
+    @Html.AntiForgeryToken()
     <input type="hidden" asp-for="Id" />
-    <button type="submit" class="btn btn-danger">Yes, Delete</button>
-    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+    </div>
 </form>

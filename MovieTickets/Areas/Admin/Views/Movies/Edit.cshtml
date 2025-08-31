@@ -4,70 +4,110 @@
     ViewData["Title"] = "Edit Movie";
 }
 
-<h2>Edit Movie</h2>
+<h3>Edit Movie</h3>
 
-<form asp-action="Edit" method="post" enctype="multipart/form-data">
+@if (TempData["ModelStateErrors"] != null)
+{
+    <pre class="bg-light p-2">@TempData["ModelStateErrors"]</pre>
+}
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger">
+        <ul>
+            @foreach (var kv in ViewData.ModelState.Where(m => m.Value.Errors.Any()))
+            {
+                foreach (var err in kv.Value.Errors)
+                {
+                    <li>@(string.IsNullOrEmpty(err.ErrorMessage) ? err.Exception?.Message : err.ErrorMessage)</li>
+                }
+            }
+        </ul>
+    </div>
+}
+
+<form asp-action="Edit" method="post" enctype="multipart/form-data" class="row g-3">
+    @Html.AntiForgeryToken()
     <input type="hidden" asp-for="Id" />
-    <div class="row">
-        <div class="col-md-8">
-            <div class="mb-3">
-                <label asp-for="Title" class="form-label"></label>
-                <input asp-for="Title" class="form-control" />
+
+    <div class="col-lg-8">
+        <div class="mb-3">
+            <label asp-for="Title" class="form-label"></label>
+            <input asp-for="Title" class="form-control" />
+            <span asp-validation-for="Title" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Description" class="form-label"></label>
+            <textarea asp-for="Description" class="form-control" rows="5"></textarea>
+            <span asp-validation-for="Description" class="text-danger"></span>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label asp-for="Price" class="form-label"></label>
+                <input asp-for="Price" class="form-control" />
+                <span asp-validation-for="Price" class="text-danger"></span>
             </div>
-            <div class="mb-3">
-                <label asp-for="Description" class="form-label"></label>
-                <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+
+            <div class="col-md-4 mb-3">
+                <label asp-for="StartDate" class="form-label"></label>
+                <input asp-for="StartDate" type="date" class="form-control" />
+                <span asp-validation-for="StartDate" class="text-danger"></span>
             </div>
-            <div class="row">
-                <div class="col-md-4 mb-3">
-                    <label asp-for="Price" class="form-label"></label>
-                    <input asp-for="Price" class="form-control" />
-                </div>
-                <div class="col-md-4 mb-3">
-                    <label asp-for="StartDate" class="form-label"></label>
-                    <input asp-for="StartDate" type="date" class="form-control" />
-                </div>
-                <div class="col-md-4 mb-3">
-                    <label asp-for="EndDate" class="form-label"></label>
-                    <input asp-for="EndDate" type="date" class="form-control" />
-                </div>
-            </div>
-            <div class="mb-3">
-                <label asp-for="TrailerUrl" class="form-label"></label>
-                <input asp-for="TrailerUrl" class="form-control" />
+
+            <div class="col-md-4 mb-3">
+                <label asp-for="EndDate" class="form-label"></label>
+                <input asp-for="EndDate" type="date" class="form-control" />
+                <span asp-validation-for="EndDate" class="text-danger"></span>
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="mb-3">
-                <label>Current Poster</label>
-                @if (!string.IsNullOrEmpty(Model.ImgUrl))
-                {
-                    <div>
-                        <img src="@Model.ImgUrl" style="width:100%;object-fit:cover;border-radius:6px" />
-                    </div>
-                }
-            </div>
+        <div class="mb-3">
+            <label asp-for="TrailerUrl" class="form-label"></label>
+            <input asp-for="TrailerUrl" class="form-control" />
+            <span asp-validation-for="TrailerUrl" class="text-danger"></span>
+        </div>
+    </div>
 
-            <div class="mb-3">
-                <label>Replace Poster</label>
-                <input type="file" name="posterFile" class="form-control" />
-            </div>
+    <div class="col-lg-4">
+        <div class="mb-3">
+            <label class="form-label">Current Poster</label>
+            @if (!string.IsNullOrEmpty(Model.ImgUrl))
+            {
+                <div class="mb-2">
+                    <img src="@Model.ImgUrl" class="img-fluid rounded" style="max-height:220px;object-fit:cover" />
+                </div>
+            }
+            else
+            {
+                <div class="bg-light p-3 text-center">No poster</div>
+            }
+        </div>
 
-            <div class="mb-3">
-                <label>Category</label>
-                @Html.DropDownList("CategoryId", (SelectList)ViewData["CategoryId"], "-- Select --", new { @class = "form-select" })
-            </div>
+        <div class="mb-3">
+            <label class="form-label">Replace Poster</label>
+            <input type="file" name="posterFile" class="form-control" />
+        </div>
 
-            <div class="mb-3">
-                <label>Cinema</label>
-                @Html.DropDownList("CinemaId", (SelectList)ViewData["CinemaId"], "-- Select --", new { @class = "form-select" })
-            </div>
+        <div class="mb-3">
+            <label class="form-label">Category</label>
+            <select asp-for="CategoryId" asp-items="@(ViewData["CategoryId"] as SelectList)" class="form-select">
+                <option value="">-- Select Category --</option>
+            </select>
+            <span asp-validation-for="CategoryId" class="text-danger"></span>
+        </div>
 
-            <div class="d-grid mt-3">
-                <button type="submit" class="btn btn-primary">Update</button>
-                <a asp-action="Index" class="btn btn-secondary mt-2">Cancel</a>
-            </div>
+        <div class="mb-3">
+            <label class="form-label">Cinema</label>
+            <select asp-for="CinemaId" asp-items="@(ViewData["CinemaId"] as SelectList)" class="form-select">
+                <option value="">-- Select Cinema --</option>
+            </select>
+            <span asp-validation-for="CinemaId" class="text-danger"></span>
+        </div>
+
+        <div class="d-grid">
+            <button type="submit" class="btn btn-primary">Update</button>
+            <a asp-action="Index" class="btn btn-secondary mt-2">Cancel</a>
         </div>
     </div>
 </form>
