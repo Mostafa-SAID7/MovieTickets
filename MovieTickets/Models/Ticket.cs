@@ -17,5 +17,8 @@ namespace MovieTickets.Models
         // Foreign Key
         public int BookingId { get; set; }
         public Booking Booking { get; set; }
+        // optional FK -> Seat (if you map tickets to specific seats)
+        public int? SeatId { get; set; }
+        public Seat? Seat { get; set; }
     }
 }

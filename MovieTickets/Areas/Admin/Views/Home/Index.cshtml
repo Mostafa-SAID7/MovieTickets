@@ -1,49 +1,39 @@
-﻿@{
-    ViewData["Title"] = "Dashboard";
+﻿@model MovieTickets.Areas.Admin.ViewModels.DashboardViewModel
+@{
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Dashboard Admin";
 }
-<div class="container mt-4">
-    <h2>📊 لوحة التحكم</h2>
-
-    <div class="row">
-        <div class="col-md-4">
-            <div class="card text-white bg-primary mb-3">
-                <div class="card-body">
-                    <h5 class="card-title">عدد الأفلام</h5>
-                    <p class="card-text fs-4">@ViewBag.TotalMovies</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card text-white bg-success mb-3">
-                <div class="card-body">
-                    <h5 class="card-title">عدد الفئات</h5>
-                    <p class="card-text fs-4">@ViewBag.TotalCategories</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card text-white bg-info mb-3">
-                <div class="card-body">
-                    <h5 class="card-title">عدد المستخدمين</h5>
-                    <p class="card-text fs-4">@ViewBag.TotalUsers</p>
-                </div>
+<div class="row">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h4>@Model.TotalMovies</h4>
+                <p>Movies</p>
             </div>
         </div>
     </div>
-
-    <h3 class="mt-5">📋 جدول الأفلام</h3>
-    <table class="table table-bordered table-striped">
-        <thead>
-            <tr>
-                <th>العنوان</th>
-                <th>الوصف</th>
-                <th>التصنيف</th>
-                <th>إجراءات</th>
-            </tr>
-        </thead>
-        <tbody>
-            @* هتجيب أفلام وتعرضها *@
-        </tbody>
-    </table>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h4>@Model.TotalCategories</h4>
+                <p>Categories</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <h4>@Model.TotalUsers</h4>
+                <p>Users</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <h4>@Model.TotalBookings</h4>
+                <p>Bookings</p>
+            </div>
+        </div>
+    </div>
 </div>

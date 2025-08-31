@@ -17,7 +17,15 @@ namespace MovieTickets.Data
         public DbSet<MovieImg> MovieImgs { get; set; }
         public DbSet<Booking> Bookings { get; set; }
         public DbSet<Ticket> Tickets { get; set; }
-
+        public DbSet<Showtime> Showtimes { get; set; }
+        public DbSet<Offer> Offers { get; set; }
+        public DbSet<Promotion> Promotions { get; set; }
+        public DbSet<Event> Events { get; set; }
+        public DbSet<Blog> Blogs { get; set; }
+        public DbSet<Job> Jobs { get; set; }
+        public DbSet<Hall> Halls { get; set; }
+        public DbSet<Seat> Seats { get; set; }
+        public DbSet<Payment> Payments { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<Notification> Notifications { get; set; }
 
@@ -25,14 +33,15 @@ namespace MovieTickets.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Composite Keys
-            modelBuilder.Entity<MovieActor>()
-                .HasKey(ma => new { ma.MovieId, ma.ActorId });
+            // -----------------------
+            // Composite keys
+            // -----------------------
+            modelBuilder.Entity<MovieActor>().HasKey(ma => new { ma.MovieId, ma.ActorId });
+            modelBuilder.Entity<MovieCategory>().HasKey(mc => new { mc.MovieId, mc.CategoryId });
 
-            modelBuilder.Entity<MovieCategory>()
-                .HasKey(mc => new { mc.MovieId, mc.CategoryId });
-
-            // Relations: MovieActor
+            // -----------------------
+            // Movie <-> MovieActor (M:N)
+            // -----------------------
             modelBuilder.Entity<MovieActor>()
                 .HasOne(ma => ma.Movie)
                 .WithMany(m => m.MovieActors)
@@ -45,7 +54,9 @@ namespace MovieTickets.Data
                 .HasForeignKey(ma => ma.ActorId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Relations: MovieCategory
+            // -----------------------
+            // Movie <-> MovieCategory (M:N)
+            // -----------------------
             modelBuilder.Entity<MovieCategory>()
                 .HasOne(mc => mc.Movie)
                 .WithMany(m => m.MovieCategories)
@@ -58,112 +69,172 @@ namespace MovieTickets.Data
                 .HasForeignKey(mc => mc.CategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Relation: MovieImg
+            // -----------------------
+            // MovieImgs -> Movie (1-M)
+            // -----------------------
             modelBuilder.Entity<MovieImg>()
                 .HasOne(mi => mi.Movie)
                 .WithMany(m => m.MovieImgs)
                 .HasForeignKey(mi => mi.MovieId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Relation: Booking
+            // -----------------------
+            // Showtimes -> Movie (1-M)
+            // -----------------------
+            modelBuilder.Entity<Showtime>()
+                .HasOne(s => s.Movie)
+                .WithMany(m => m.Showtimes) // ensure Movie has ICollection<Showtime> Showtimes
+                .HasForeignKey(s => s.MovieId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // -----------------------
+            // Hall <-> Showtime (1-M)
+            // -----------------------
+            modelBuilder.Entity<Showtime>()
+                .HasOne(s => s.Hall)
+                .WithMany(h => h.Showtimes)
+                .HasForeignKey(s => s.HallId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // -----------------------
+            // Hall -> Seats (1-M)
+            // -----------------------
+            modelBuilder.Entity<Seat>()
+                .HasOne(s => s.Hall)
+                .WithMany(h => h.Seats)
+                .HasForeignKey(s => s.HallId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // enforce unique seat number per hall (e.g., HallId + SeatNumber)
+            modelBuilder.Entity<Seat>()
+                .HasIndex(s => new { s.HallId, s.SeatNumber })
+                .IsUnique();
+
+            // -----------------------
+            // Booking relations
+            // - Booking -> Movie (optional if you use Showtime instead)
+            // - Booking -> User
+            // - Booking -> Showtime (if you added ShowtimeId to Booking model)
+            // -----------------------
+            // Booking -> Movie (if Booking has MovieId)
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.Movie)
-                .WithMany(m => m.Bookings)
+                .WithMany(m => m.Bookings) // ensure Movie has ICollection<Booking> Bookings if you use this
                 .HasForeignKey(b => b.MovieId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Booking -> User
             modelBuilder.Entity<Booking>()
                 .HasOne(b => b.User)
-                .WithMany(u => u.Bookings)
+                .WithMany(u => u.Bookings) // ensure User has ICollection<Booking> Bookings
                 .HasForeignKey(b => b.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
-            // Relation: Booking -> Tickets
+
+            // If you changed Booking to reference a Showtime, you can enable:
+            modelBuilder.Entity<Booking>()
+       .HasOne(b => b.Showtime).WithMany(s => s.Bookings).HasForeignKey(b => b.ShowtimeId)
+       .OnDelete(DeleteBehavior.Restrict);
+
+            // -----------------------
+            // Tickets -> Booking (1-M)
+            // -----------------------
             modelBuilder.Entity<Ticket>()
                 .HasOne(t => t.Booking)
                 .WithMany(b => b.Tickets)
                 .HasForeignKey(t => t.BookingId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Cascade); // when a booking removed, delete tickets
 
-            // =============================
-            // 🔹 Seed Data
-            // =============================
+            // Ticket -> Seat (optional): if you link ticket to a seat
+            modelBuilder.Entity<Ticket>()
+                .HasOne(t => t.Seat)
+                .WithMany() // Seat may have Booking reference or not; adjust as necessary
+                .HasForeignKey(t => t.SeatId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<Cinema>().HasData(
-                new Cinema { Id = 1, Name = "Cinema Cairo", Description = "Main cinema in Cairo", Address = "123 Main St" },
-                new Cinema { Id = 2, Name = "Alex Cinema", Description = "Cinema in Alexandria", Address = "123 Main St" },
-                new Cinema { Id = 3, Name = "Luxor Cinema", Description = "Cinema in Luxor", Address = "123 Main St" }
-            );
+            // -----------------------
+            // Payment <-> Booking (1-1)
+            // If Booking has Payment navigation: Booking.Payment
+            // -----------------------
+            // If you want one-to-one:
+            modelBuilder.Entity<Payment>()
+       .HasOne(p => p.Booking).WithMany() // or .WithOne(b => b.Payment) if 1:1
+       .HasForeignKey(p => p.BookingId)
+       .OnDelete(DeleteBehavior.Restrict);
 
-            // Seed Categories
-            modelBuilder.Entity<Category>().HasData(
-                new Category { Id = 1, Name = "Action" },
-                new Category { Id = 2, Name = "Comedy" },
-                new Category { Id = 3, Name = "Drama" },
-                new Category { Id = 4, Name = "Horror" },
-                new Category { Id = 5, Name = "Sci-Fi" }
-            );
+            // If you prefer one-to-many (multiple payments per booking), use WithMany and change model accordingly.
 
-            // Seed Movies (CinemaId + CategoryId موجودين خلاص فوق 👌)
-            modelBuilder.Entity<Movie>().HasData(
-                new Movie
-                {
-                    Id = 1,
-                    Title = "Avengers: Endgame",
-                    Description = "Superheroes unite to battle Thanos.",
-                    Price = 100,
-                    StartDate = new DateTime(2019, 4, 26),
-                    EndDate = new DateTime(2025, 12, 31),
+            // -----------------------
+            // Precision & column types
+            // -----------------------
+            modelBuilder.Entity<Movie>()
+                .Property(m => m.Price)
+                .HasColumnType("decimal(10,2)");
 
-                    CategoryId = 1,
-                    CinemaId = 1
-                },
-                new Movie
-                {
-                    Id = 2,
-                    Title = "The Mask",
-                    Description = "A man discovers a magical mask.",
-                    StartDate = new DateTime(1994, 7, 29),
-                    CategoryId = 2,
-                    CinemaId = 2
-                },
-                new Movie
-                {
-                    Id = 3,
-                    Title = "The Shawshank Redemption",
-                    Description = "Two imprisoned men bond over a number of years.",
-                    StartDate = new DateTime(1994, 9, 23),
-                    CategoryId = 3,
-                    CinemaId = 3
-                },
-                new Movie
-                {
-                    Id = 4,
-                    Title = "The Conjuring",
-                    Description = "Paranormal investigators help a family.",
-                    StartDate = new DateTime(2013, 7, 19),
-                    CategoryId = 4,
-                    CinemaId = 1
-                },
-                new Movie
-                {
-                    Id = 5,
-                    Title = "Inception",
-                    Description = "A thief enters people's dreams to steal secrets.",
-                    StartDate = new DateTime(2010, 7, 16),
-                    CategoryId = 5,
-                    CinemaId = 2
-                }
-            );
-            // Seed Actors
-            modelBuilder.Entity<Actor>().HasData(
-                new Actor { Id = 1, FirstName = "Robert", LastName = "Downey Jr." },
-                new Actor { Id = 2, FirstName = "Chris", LastName = "Evans" },
-                new Actor { Id = 3, FirstName = "Scarlett", LastName = "Johansson" },
-                new Actor { Id = 4, FirstName = "Leonardo", LastName = "DiCaprio" },
-                new Actor { Id = 5, FirstName = "Tom", LastName = "Hanks" }
-            );
-    
+            modelBuilder.Entity<Ticket>()
+                .Property(t => t.Price)
+                .HasColumnType("decimal(10,2)");
 
+            modelBuilder.Entity<Booking>()
+                .Property(b => b.TotalPrice)
+                .HasColumnType("decimal(10,2)");
+
+            modelBuilder.Entity<Showtime>()
+                .Property(s => s.TicketPrice)
+                .HasColumnType("decimal(10,2)");
+
+            modelBuilder.Entity<Payment>()
+                .Property(p => p.Amount)
+                .HasColumnType("decimal(10,2)");
+
+            modelBuilder.Entity<Offer>()
+                .Property(o => o.DiscountPercentage)
+                .HasColumnType("decimal(5,2)");
+
+            // -----------------------
+            // Useful Indexes
+            // -----------------------
+            modelBuilder.Entity<Movie>()
+                .HasIndex(m => m.Title);
+
+            modelBuilder.Entity<Showtime>()
+                .HasIndex(s => s.ShowDateTime);
+
+            modelBuilder.Entity<Offer>()
+                .HasIndex(o => new { o.IsActive, o.ExpiryDate });
+
+            modelBuilder.Entity<Promotion>()
+                .HasIndex(p => new { p.IsActive, p.ExpiryDate });
+
+            modelBuilder.Entity<Event>()
+                .HasIndex(e => e.Date);
+
+            // -----------------------
+            // Default values / value generation (optional)
+            // -----------------------
+            // Example: CreatedAt on Blog / Job
+            modelBuilder.Entity<Blog>()
+                .Property(b => b.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()")
+                .ValueGeneratedOnAdd();
+
+            modelBuilder.Entity<Job>()
+                .Property(j => j.PostedDate)
+                .HasDefaultValueSql("GETUTCDATE()")
+                .ValueGeneratedOnAdd();
+            // precision / indexes etc...
+            modelBuilder.Entity<Movie>().Property(m => m.Price).HasColumnType("decimal(10,2)");
+            modelBuilder.Entity<Ticket>().Property(t => t.Price).HasColumnType("decimal(10,2)");
+            modelBuilder.Entity<Booking>().Property(b => b.TotalPrice).HasColumnType("decimal(10,2)");
+            // -----------------------
+            // Concurrency tokens (if any model uses [Timestamp] RowVersion)
+            // -----------------------
+            // If your Movie model has RowVersion byte[] property:
+            // modelBuilder.Entity<Movie>().Property(m => m.RowVersion).IsRowVersion();
+
+            // -----------------------
+            // Seed data (optional)
+            // -----------------------
+            // Keep seed data small and idempotent. You can add seed here if necessary.
         }
     }
 }

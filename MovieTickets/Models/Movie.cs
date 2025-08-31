@@ -29,6 +29,7 @@ namespace MovieTickets.Models
         public DateTime EndDate { get; set; }
 
         public MovieStatus MovieStatus { get; set; }
+        public int DurationMinutes { get; set; }
 
         // Foreign Keys
         public int CinemaId { get; set; }
@@ -44,6 +45,7 @@ namespace MovieTickets.Models
         public ICollection<MovieActor> MovieActors { get; set; } = new List<MovieActor>();
         public ICollection<MovieImg> MovieImgs { get; set; } = new List<MovieImg>();
         public ICollection<MovieCategory> MovieCategories { get; set; } = new List<MovieCategory>();
+        public ICollection<Showtime> Showtimes { get; set; } = new List<Showtime>();
 
     }
 

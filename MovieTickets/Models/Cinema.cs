@@ -25,6 +25,7 @@ namespace MovieTickets.Models
 
         // Relations
         public ICollection<Movie> Movies { get; set; } = new List<Movie>();
+        public ICollection<Hall> Halls { get; set; } = new List<Hall>();
 
     }
 }

@@ -9,7 +9,9 @@ namespace MovieTickets.Models
 
         [Column(TypeName = "decimal(10,2)")]
         public decimal TotalPrice { get; set; }
-
+        // Prefer booking a specific showtime (recommended)
+        public int? ShowtimeId { get; set; }
+        public Showtime? Showtime { get; set; }
         // Foreign Keys
         public int MovieId { get; set; }
         public Movie Movie { get; set; }
