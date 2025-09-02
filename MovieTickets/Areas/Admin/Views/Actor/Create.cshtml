@@ -1,0 +1,57 @@
+﻿@model MovieTickets.Areas.Admin.ViewModels.ActorFormViewModel
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Create Actor";
+}
+
+<h3>Create Actor</h3>
+
+<form asp-action="Create" method="post">
+    @Html.AntiForgeryToken()
+
+    <div class="form-group">
+        <label asp-for="FirstName"></label>
+        <input asp-for="FirstName" class="form-control" />
+        <span asp-validation-for="FirstName" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="LastName"></label>
+        <input asp-for="LastName" class="form-control" />
+        <span asp-validation-for="LastName" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Name"></label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+        <small class="form-text text-muted">Optional: full name or stage name</small>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Bio"></label>
+        <textarea asp-for="Bio" rows="4" class="form-control"></textarea>
+        <span asp-validation-for="Bio" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="ProfilePicture"></label>
+        <input asp-for="ProfilePicture" class="form-control" />
+        <span asp-validation-for="ProfilePicture" class="text-danger"></span>
+        <small class="form-text text-muted">Enter URL of profile picture (you can extend later to file upload)</small>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="News"></label>
+        <textarea asp-for="News" rows="3" class="form-control"></textarea>
+        <span asp-validation-for="News" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a asp-action="Index" class="btn btn-secondary">Back</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

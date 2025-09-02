@@ -41,7 +41,7 @@ namespace MovieTickets.Areas.Admin.ViewModels
         public MovieStatus MovieStatus { get; set; }
 
         [Required]
-        public int CinemaId { get; set; }
+        public int? CinemaId { get; set; }
 
         [Required]
         public int CategoryId { get; set; }

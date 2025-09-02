@@ -8,8 +8,10 @@
 
   <ItemGroup>
     <Folder Include="Models\NewFolder\" />
+    <Folder Include="wwwroot\images\actors\" />
     <Folder Include="wwwroot\uploads\movies\" />
     <Folder Include="wwwroot\uploads\cinemas\" />
+    <Folder Include="wwwroot\uploads\actors\" />
   </ItemGroup>
 
   <ItemGroup>

@@ -39,6 +39,11 @@ namespace MovieTickets.Data
             modelBuilder.Entity<MovieActor>().HasKey(ma => new { ma.MovieId, ma.ActorId });
             modelBuilder.Entity<MovieCategory>().HasKey(mc => new { mc.MovieId, mc.CategoryId });
 
+            modelBuilder.Entity<Movie>()
+                .HasOne(m => m.Cinema)
+                .WithMany(c => c.Movies)
+                .HasForeignKey(m => m.CinemaId)
+                .OnDelete(DeleteBehavior.SetNull);
             // -----------------------
             // Movie <-> MovieActor (M:N)
             // -----------------------
@@ -52,7 +57,7 @@ namespace MovieTickets.Data
                 .HasOne(ma => ma.Actor)
                 .WithMany(a => a.MovieActors)
                 .HasForeignKey(ma => ma.ActorId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
 
             // -----------------------
             // Movie <-> MovieCategory (M:N)

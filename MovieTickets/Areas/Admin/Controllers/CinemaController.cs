@@ -112,7 +112,6 @@ namespace MovieTickets.Areas.Admin.Controllers
                     await vm.LogoFile.CopyToAsync(stream);
                 }
 
-                // delete old file if exists
                 if (!string.IsNullOrEmpty(cinema.CinemaLogo))
                 {
                     string oldFile = Path.Combine(_env.WebRootPath, cinema.CinemaLogo.TrimStart('/'));
@@ -133,23 +132,22 @@ namespace MovieTickets.Areas.Admin.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // GET: Delete
+        // POST: Delete
+        [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
-            var cinema = await _context.Cinemas.FirstOrDefaultAsync(c => c.Id == id);
+            var cinema = await _context.Cinemas
+                .Include(c => c.Movies)
+                .FirstOrDefaultAsync(c => c.Id == id);
+
             if (cinema == null) return NotFound();
 
-            return View(cinema);
-        }
+            if (cinema.Movies.Any())
+            {
+                TempData["Error"] = "Cannot delete this cinema because it has movies assigned.";
+                return RedirectToAction(nameof(Index));
+            }
 
-        // POST: Delete
-        [HttpPost, ActionName("Delete"), ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
-        {
-            var cinema = await _context.Cinemas.FindAsync(id);
-            if (cinema == null) return NotFound();
-
-            // --- Delete logo file if exists ---
             if (!string.IsNullOrEmpty(cinema.CinemaLogo))
             {
                 string oldFile = Path.Combine(_env.WebRootPath, cinema.CinemaLogo.TrimStart('/'));
@@ -160,6 +158,7 @@ namespace MovieTickets.Areas.Admin.Controllers
             _context.Cinemas.Remove(cinema);
             await _context.SaveChangesAsync();
 
+            TempData["Success"] = "Cinema deleted successfully.";
             return RedirectToAction(nameof(Index));
         }
     }

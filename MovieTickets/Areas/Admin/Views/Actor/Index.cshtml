@@ -1,0 +1,69 @@
+﻿@model IEnumerable<MovieTickets.Models.Actor>
+
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    ViewData["Title"] = "Actors";
+}
+
+<h3>Actors</h3>
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">Add New Actor</a>
+</p>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Profile</th>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>Full Name</th>
+            <th>Bio</th>
+            <th>News</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model != null && Model.Any())
+        {
+            foreach (var actor in Model)
+            {
+                <tr>
+                    <td>
+                        @if (!string.IsNullOrEmpty(actor.ProfilePicture))
+                        {
+                            <img src="@actor.ProfilePicture" style="max-height:60px;" />
+                        }
+                    </td>
+                    <td>@actor.FirstName</td>
+                    <td>@actor.LastName</td>
+                    <td>@actor.Name</td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(actor.Bio))
+                        {
+                            @actor.Bio.Substring(0, Math.Min(50, actor.Bio.Length))
+                            
+                                        }
+                    </td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(actor.News))
+                        {
+                            @actor.News.Substring(0, Math.Min(40, actor.News.Length))
+                                        }
+                    </td>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@actor.Id" class="btn btn-sm btn-info">Details</a>
+                        <a asp-action="Edit" asp-route-id="@actor.Id" class="btn btn-sm btn-warning">Edit</a>
+                        <a asp-action="Delete" asp-route-id="@actor.Id" class="btn btn-sm btn-danger">Delete</a>
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="7" class="text-center">No actors found.</td>
+            </tr>
+        }
+    </tbody>
+</table>

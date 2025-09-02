@@ -70,7 +70,10 @@
             <select asp-for="CinemaId" asp-items="Model.Cinemas" class="form-control"></select>
             <span asp-validation-for="CinemaId" class="text-danger"></span>
         </div>
-
+        <div class="form-group col-md-6">
+            <label asp-for="MovieStatus"></label>
+            <select asp-for="MovieStatus" asp-items="Html.GetEnumSelectList<MovieTickets.Models.Enums.MovieStatus>()" class="form-control"></select>
+        </div>
         <div class="form-group col-md-4">
             <label asp-for="CategoryId"></label>
             <select asp-for="CategoryId" asp-items="Model.Categories" class="form-control"></select>

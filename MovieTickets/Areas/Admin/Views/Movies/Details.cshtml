@@ -18,6 +18,9 @@
 
             <dt class="col-sm-4">Cinema</dt>
             <dd class="col-sm-8">@Model.Cinema?.Name</dd>
+            
+            <dt class="col-sm-4">Status</dt>
+            <dd class="col-sm-8">@Model.MovieStatus</dd>
 
             <dt class="col-sm-4">Start</dt>
             <dd class="col-sm-8">@Model.StartDate.ToString("yyyy-MM-dd")</dd>
@@ -31,6 +34,7 @@
     </div>
 
     <div class="col-md-8">
+
         <h5>Description</h5>
         <p>@Model.Description</p>
 

@@ -117,7 +117,8 @@ namespace MovieTickets.Areas.Admin.Controllers
                     EndDate = vm.EndDate,
                     MovieStatus = vm.MovieStatus,
                     CinemaId = vm.CinemaId,
-                    CategoryId = vm.CategoryId
+                    CategoryId = vm.CategoryId,
+                    
                 };
 
                 _context.Movies.Add(movie);

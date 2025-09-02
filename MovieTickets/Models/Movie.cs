@@ -32,8 +32,8 @@ namespace MovieTickets.Models
         public int DurationMinutes { get; set; }
 
         // Foreign Keys
-        public int CinemaId { get; set; }
-        public Cinema Cinema { get; set; }
+        public int? CinemaId { get; set; }
+        public Cinema? Cinema { get; set; }
 
         public int CategoryId { get; set; }
         public Category Category { get; set; }

@@ -14,7 +14,7 @@ namespace MovieTickets.Models
         [MaxLength(1000, ErrorMessage = "Description cannot exceed 1000 characters")]
         [Display(Name = "Description")]
         public string? Description { get; set; }
-
+        public string? Phone { get; set; }
         [Display(Name = "Logo URL")]
         public string? CinemaLogo { get; set; }
 
